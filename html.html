@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Nutrition Tracker</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- HEADER -->
+    <header class="topbar">
+        <h1>Nutrition Tracker</h1>
+        <p>Simple. Fast. Yours.</p>
+    </header>
+
+
+    <!-- NAVIGATION -->
+    <nav class="tabs">
+
+        <button class="tab active" data-page="dailyPage">
+            Daily Log
+        </button>
+
+        <button class="tab" data-page="progressPage">
+            Progress
+        </button>
+
+        <button class="tab" data-page="weightPage">
+            Weight
+        </button>
+
+        <button class="tab" data-page="foodsPage">
+            My Foods
+        </button>
+
+    </nav>
+
+
+    <!-- ================================================= -->
+    <!-- DAILY LOG -->
+    <!-- ================================================= -->
+
+    <section id="dailyPage" class="page active">
+
+        <div class="card">
+
+            <label class="label">
+                Date
+            </label>
+
+            <input id="logDate" type="date">
+
+        </div>
+
+
+        <div id="mealSections"></div>
+
+
+        <!-- DAILY TOTAL -->
+
+        <div class="card totals">
+
+            <h2>Today's Total</h2>
+
+            <div class="total-grid">
+
+                <div>
+                    <span>Calories</span>
+                    <strong id="totalCalories">0</strong>
+                    <small>kcal</small>
+                </div>
+
+                <div>
+                    <span>Protein</span>
+                    <strong id="totalProtein">0</strong>
+                    <small>g</small>
+                </div>
+
+                <div>
+                    <span>Carbs</span>
+                    <strong id="totalCarbs">0</strong>
+                    <small>g</small>
+                </div>
+
+                <div>
+                    <span>Fat</span>
+                    <strong id="totalFat">0</strong>
+                    <small>g</small>
+                </div>
+
+                <div>
+                    <span>Fibre</span>
+                    <strong id="totalFibre">0</strong>
+                    <small>g</small>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SUPPLEMENTS -->
+
+        <div class="card">
+
+            <h2>Supplements</h2>
+
+            <div id="supplementChecklist" class="checklist"></div>
+
+        </div>
+
+
+        <button id="saveDayBtn" class="primary-btn">
+            SAVE DAY
+        </button>
+
+        <p id="saveMessage" class="message"></p>
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- PROGRESS -->
+    <!-- ================================================= -->
+
+    <section id="progressPage" class="page">
+
+        <div class="card">
+
+            <h2>Nutrition Progress</h2>
+
+            <div class="date-range">
+
+                <div>
+
+                    <label class="label">
+                        From
+                    </label>
+
+                    <input id="fromDate" type="date">
+
+                </div>
+
+                <div>
+
+                    <label class="label">
+                        To
+                    </label>
+
+                    <input id="toDate" type="date">
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="progress-grid">
+
+                <div>
+                    <span>Avg Calories</span>
+                    <strong id="avgCalories">0</strong>
+                    <small>kcal/day</small>
+                </div>
+
+                <div>
+                    <span>Avg Protein</span>
+                    <strong id="avgProtein">0</strong>
+                    <small>g/day</small>
+                </div>
+
+                <div>
+                    <span>Avg Carbs</span>
+                    <strong id="avgCarbs">0</strong>
+                    <small>g/day</small>
+                </div>
+
+                <div>
+                    <span>Avg Fat</span>
+                    <strong id="avgFat">0</strong>
+                    <small>g/day</small>
+                </div>
+
+                <div>
+                    <span>Avg Fibre</span>
+                    <strong id="avgFibre">0</strong>
+                    <small>g/day</small>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>Saved Days</h2>
+
+            <div id="historyList"></div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- WEIGHT -->
+    <!-- ================================================= -->
+
+    <section id="weightPage" class="page">
+
+
+        <!-- LOG WEIGHT -->
+
+        <div class="card">
+
+            <h2>Log Weight</h2>
+
+
+            <label class="label">
+                Date
+            </label>
+
+            <input id="weightDate" type="date">
+
+
+            <label class="label weight-label">
+                Weight
+            </label>
+
+            <div class="weight-input">
+
+                <input
+                    id="weightValue"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    placeholder="72.2">
+
+                <span>kg</span>
+
+            </div>
+
+
+            <button
+                id="saveWeightBtn"
+                class="primary-btn weight-save-btn">
+
+                SAVE WEIGHT
+
+            </button>
+
+
+            <button
+                id="cancelWeightEditBtn"
+                class="secondary-btn"
+                style="display:none;">
+
+                CANCEL EDIT
+
+            </button>
+
+
+            <p
+                id="weightMessage"
+                class="message">
+
+            </p>
+
+        </div>
+
+
+
+        <!-- WEIGHT SUMMARY -->
+
+        <div class="card">
+
+            <h2>Weight Summary</h2>
+
+
+            <div class="weight-summary-grid">
+
+
+                <div>
+
+                    <span>Current</span>
+
+                    <strong id="currentWeight">
+                        0
+                    </strong>
+
+                    <small>kg</small>
+
+                </div>
+
+
+                <div>
+
+                    <span>Starting</span>
+
+                    <strong id="startingWeight">
+                        0
+                    </strong>
+
+                    <small>kg</small>
+
+                </div>
+
+
+                <div>
+
+                    <span>Change</span>
+
+                    <strong id="weightChange">
+                        0
+                    </strong>
+
+                    <small>kg</small>
+
+                </div>
+
+
+                <div>
+
+                    <span>Lowest</span>
+
+                    <strong id="lowestWeight">
+                        0
+                    </strong>
+
+                    <small>kg</small>
+
+                </div>
+
+
+                <div>
+
+                    <span>Highest</span>
+
+                    <strong id="highestWeight">
+                        0
+                    </strong>
+
+                    <small>kg</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- GRAPH -->
+
+        <div class="card">
+
+            <h2>Weight Progress</h2>
+
+            <div class="chart-container">
+
+                <canvas id="weightChart"></canvas>
+
+            </div>
+
+            <p class="muted">
+
+                Each point represents an actual
+                weight measurement you logged.
+
+            </p>
+
+        </div>
+
+
+
+        <!-- WEIGHT HISTORY -->
+
+        <div class="card">
+
+            <h2>Weight History</h2>
+
+            <div id="weightHistory"></div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ================================================= -->
+    <!-- MY FOODS -->
+    <!-- ================================================= -->
+
+    <section id="foodsPage" class="page">
+
+
+        <div class="card">
+
+            <h2>My Foods</h2>
+
+            <p class="muted">
+
+                Nothing is preloaded.
+                Add your own foods, protein
+                powders and dishes.
+
+            </p>
+
+
+            <div class="category-buttons">
+
+                <button
+                    class="category-btn active"
+                    data-category="protein">
+
+                    Protein Powder
+
+                </button>
+
+
+                <button
+                    class="category-btn"
+                    data-category="food">
+
+                    Food Item
+
+                </button>
+
+
+                <button
+                    class="category-btn"
+                    data-category="dish">
+
+                    Dish
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- FOOD FORM -->
+
+        <form id="foodForm" class="card">
+
+            <h2 id="formTitle">
+                Add Protein Powder
+            </h2>
+
+
+            <label class="label">
+
+                Name
+
+                <input
+                    id="foodName"
+                    type="text"
+                    placeholder="Example: SuperYou Protein"
+                    required>
+
+            </label>
+
+
+            <div class="nutrition-grid">
+
+                <label>
+
+                    Calories / 100 g
+
+                    <input
+                        id="calories"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    Protein / 100 g
+
+                    <input
+                        id="protein"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    Carbs / 100 g
+
+                    <input
+                        id="carbs"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    Fat / 100 g
+
+                    <input
+                        id="fat"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required>
+
+                </label>
+
+
+                <label>
+
+                    Fibre / 100 g
+
+                    <input
+                        id="fibre"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value="0">
+
+                </label>
+
+
+                <label>
+
+                    Sugar / 100 g
+
+                    <input
+                        id="sugar"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value="0">
+
+                </label>
+
+            </div>
+
+
+
+            <!-- SERVING OPTIONS -->
+
+            <div id="servingOptionsBox">
+
+                <h3>
+                    Serving Buttons
+                </h3>
+
+
+                <p class="muted">
+
+                    These buttons will appear
+                    when logging this item.
+
+                </p>
+
+
+                <div class="serving-checks">
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="1 scoop"
+                            checked>
+
+                        1 scoop
+
+                    </label>
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="1.5 scoop"
+                            checked>
+
+                        1.5 scoops
+
+                    </label>
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="2 scoop">
+
+                        2 scoops
+
+                    </label>
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="3 scoop">
+
+                        3 scoops
+
+                    </label>
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="1 capsule">
+
+                        1 capsule
+
+                    </label>
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="2 capsules">
+
+                        2 capsules
+
+                    </label>
+
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            value="3 g">
+
+                        3 g
+
+                    </label>
+
+                </div>
+
+
+                <label class="label">
+
+                    Weight of 1 scoop /
+                    unit (g)
+
+                    <input
+                        id="servingWeight"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Example: 33">
+
+                </label>
+
+            </div>
+
+
+            <button
+                class="primary-btn"
+                type="submit">
+
+                ADD TO MY FOODS
+
+            </button>
+
+        </form>
+
+
+
+        <!-- FOOD LIST -->
+
+        <div class="card">
+
+            <h2>
+                Saved Items
+            </h2>
+
+            <div id="foodList"></div>
+
+        </div>
+
+    </section>
+
+
+</div>
+
+
+<!-- CHART LIBRARY -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- APP -->
+
+<script src="app.js"></script>
+
+</body>
+</html>
