@@ -1256,3 +1256,760 @@ select {
     }
 
 }
+
+
+
+/* =========================
+   DAILY HABIT TRACKERS
+========================= */
+
+.habit-list {
+    display: grid;
+    gap: 10px;
+}
+
+.habit-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background: #f7f8fa;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.habit-check input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: #1f5eff;
+}
+
+.habit-check span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.habit-check strong {
+    font-size: 15px;
+}
+
+.habit-check small {
+    color: #777;
+    font-size: 12px;
+}
+
+
+/* =========================
+   PROGRESS DASHBOARD
+========================= */
+
+.progress-dashboard,
+.streak-dashboard {
+    overflow: hidden;
+}
+
+.progress-title-row,
+.section-heading-row,
+.streak-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.progress-title-row h2,
+.section-heading-row h2 {
+    margin-bottom: 4px;
+}
+
+.ring-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.ring-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+}
+
+.ring-card > strong {
+    font-size: 15px;
+}
+
+.ring-card > small {
+    color: #777;
+    font-size: 12px;
+}
+
+.ring-wrap {
+    width: 150px;
+    height: 150px;
+    position: relative;
+}
+
+.progress-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.ring-track,
+.ring-progress {
+    fill: none;
+    stroke-width: 10;
+}
+
+.ring-track {
+    stroke: #eceef2;
+}
+
+.ring-progress {
+    stroke-linecap: round;
+    stroke-dasharray: 339.292;
+    stroke-dashoffset: 339.292;
+    transition: stroke-dashoffset 900ms cubic-bezier(.22,.61,.36,1);
+}
+
+.protein-ring .ring-progress {
+    stroke: #e53935;
+}
+
+.calories-ring .ring-progress {
+    stroke: #f59e0b;
+}
+
+.fibre-ring .ring-progress {
+    stroke: #22c55e;
+}
+
+.ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    line-height: 1.05;
+}
+
+.ring-center strong {
+    font-size: 25px;
+}
+
+.ring-center span {
+    color: #777;
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.target-editor {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #eceef2;
+}
+
+.target-editor h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+}
+
+.target-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.target-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #666;
+}
+
+.target-grid input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.streak-list {
+    display: grid;
+    gap: 20px;
+    margin-top: 16px;
+}
+
+.streak-item {
+    padding: 14px;
+    border-radius: 12px;
+    background: #f7f8fa;
+    overflow-x: auto;
+}
+
+.streak-header {
+    margin-bottom: 12px;
+}
+
+.streak-header > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.streak-header small {
+    color: #777;
+    font-size: 11px;
+}
+
+.streak-number {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.streak-number span {
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.streak-number small {
+    color: #777;
+}
+
+.habit-heatmap {
+    display: grid;
+    grid-template-rows: repeat(7, 12px);
+    grid-auto-flow: column;
+    grid-auto-columns: 12px;
+    gap: 4px;
+    min-width: max-content;
+}
+
+.habit-cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: #e9ebef;
+}
+
+.habit-cell.done {
+    background: #22c55e;
+}
+
+.habit-cell.failed {
+    background: #ef4444;
+    opacity: .65;
+}
+
+@media (max-width: 700px) {
+    .ring-grid {
+        gap: 8px;
+    }
+
+    .ring-wrap {
+        width: 105px;
+        height: 105px;
+    }
+
+    .ring-center strong {
+        font-size: 19px;
+    }
+
+    .ring-center span {
+        font-size: 9px;
+    }
+
+    .target-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .habit-heatmap {
+        grid-template-rows: repeat(7, 10px);
+        grid-auto-columns: 10px;
+        gap: 3px;
+    }
+
+    .habit-cell {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+
+/* =========================================
+   RESTORED WHITE + BLUE THEME
+========================================= */
+
+body {
+    background: #f5f6f8;
+    color: #202124;
+}
+
+.card,
+.tabs {
+    background: #ffffff;
+    color: #202124;
+}
+
+.tab {
+    background: #eeeeee;
+    color: #202124;
+}
+
+.tab.active,
+.primary-btn {
+    background: #1f5eff;
+    color: #ffffff;
+}
+
+.primary-btn:hover,
+.tab.active:hover {
+    background: #174bd1;
+}
+
+.secondary-btn {
+    background: #ffffff;
+    color: #444444;
+    border-color: #d7d9dd;
+}
+
+input,
+select,
+textarea {
+    background: #ffffff;
+    color: #202124;
+    border-color: #d7d9dd;
+}
+
+select option {
+    background: #ffffff;
+    color: #202124;
+}
+
+.muted,
+.food-meta,
+.topbar p {
+    color: #777777;
+}
+
+.food-item,
+.habit-check,
+.dish-total-box,
+.dish-ingredient-row {
+    background: #f7f8fa;
+    color: #202124;
+}
+
+/* =========================================
+   DISH BUILDER
+========================================= */
+
+.dish-builder-card {
+    border: 1px solid #e7eaf0;
+}
+
+.dish-builder-header,
+.dish-ingredients-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dish-ingredients-header {
+    margin-top: 18px;
+    margin-bottom: 10px;
+}
+
+.dish-ingredients-header h3 {
+    margin: 0;
+}
+
+.dish-ingredients-header .secondary-btn {
+    width: auto;
+    margin: 0;
+    padding: 9px 12px;
+}
+
+.dish-ingredient-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 120px 40px;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 10px;
+}
+
+.dish-ingredient-row input,
+.dish-ingredient-row select {
+    min-width: 0;
+}
+
+.dish-remove-btn {
+    width: 40px;
+    height: 40px;
+    margin: 0;
+}
+
+.dish-total-box {
+    margin: 14px 0;
+    padding: 14px;
+    border-radius: 12px;
+}
+
+.dish-total-box h3 {
+    margin: 0 0 10px;
+}
+
+.dish-total-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.dish-total-grid > div {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    padding: 9px;
+}
+
+.dish-total-grid span {
+    display: block;
+    font-size: 11px;
+    color: #777777;
+}
+
+.dish-total-grid strong {
+    font-size: 17px;
+    display: inline-block;
+    margin-top: 3px;
+}
+
+.dish-total-grid small {
+    margin-left: 3px;
+    color: #777777;
+}
+
+.dish-per-100 {
+    margin: 12px 0 0;
+}
+
+.dish-empty-message {
+    padding: 10px 0;
+}
+
+@media (max-width: 600px) {
+    .dish-ingredient-row {
+        grid-template-columns: 1fr 1fr 90px 36px;
+    }
+
+    .dish-total-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 440px) {
+    .dish-ingredient-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dish-ingredient-row .dish-food-quantity {
+        grid-column: 1;
+    }
+
+    .dish-remove-btn {
+        grid-column: 2;
+        justify-self: end;
+    }
+}
+
+
+/* =========================================
+   RESTORED WHITE + BLUE THEME
+========================================= */
+body {
+    background: #f5f7fb;
+    color: #172033;
+}
+
+.topbar {
+    background: #ffffff;
+    color: #172033;
+}
+
+.primary-btn,
+.tab.active,
+.category-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.primary-btn:hover,
+.tab.active:hover,
+.category-btn.active:hover {
+    background: #1d4ed8;
+}
+
+.card {
+    background: #ffffff;
+    border-color: #dbe3ef;
+}
+
+/* =========================================
+   DAILY TRACKERS
+========================================= */
+.daily-trackers {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.daily-tracker-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 1px solid #dbe3ef;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.daily-tracker-item input {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+}
+
+/* =========================================
+   STREAK HISTORY
+========================================= */
+.tracker-history-card {
+    margin-top: 16px;
+}
+
+.tracker-history-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.tracker-history-title span {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.tracker-strip {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px calc(50% - 18px);
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+}
+
+.tracker-cell {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #dbe3ef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    transition: transform .15s ease;
+}
+
+.tracker-cell.done {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.tracker-cell.not-done {
+    background: #eef2f7;
+    color: #94a3b8;
+}
+
+.tracker-cell.today {
+    outline: 3px solid #172033;
+    outline-offset: 2px;
+    transform: scale(1.08);
+}
+
+.tracker-day {
+    pointer-events: none;
+}
+
+@media (max-width: 700px) {
+    .daily-trackers {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tracker-cell {
+        flex-basis: 30px;
+        width: 30px;
+        height: 30px;
+    }
+}
+
+
+/* =========================================
+   CENTERED ONE-YEAR GITHUB-STYLE TRACKERS
+========================================= */
+.streak-item {
+    overflow: hidden;
+}
+
+.habit-heatmap.centered-year-heatmap {
+    display: grid;
+    grid-template-rows: repeat(7, 9px);
+    grid-template-columns: repeat(53, 9px);
+    grid-auto-flow: column;
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.habit-heatmap.centered-year-heatmap .habit-cell {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+}
+
+.habit-cell.future {
+    background: #f1f3f6;
+}
+
+.habit-cell.today-cell {
+    outline: 2px solid #1f5eff;
+    outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+    .habit-heatmap.centered-year-heatmap {
+        grid-template-columns: repeat(53, 6px);
+        grid-template-rows: repeat(7, 6px);
+        gap: 2px;
+    }
+    .habit-heatmap.centered-year-heatmap .habit-cell {
+        width: 6px;
+        height: 6px;
+    }
+}
+
+/* =========================================
+   DAILY LOG FOOD SEARCH
+========================================= */
+.food-row > input[type="search"] {
+    min-width: 0;
+}
+
+/* =========================================
+   SAVED DAILY LOGS
+========================================= */
+.daily-log-history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.history-actions {
+    display: flex;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+.history-open-btn,
+.history-delete-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.history-open-btn {
+    background: #eaf0ff;
+    color: #1f5eff;
+}
+
+.history-delete-btn {
+    background: #fff0f0;
+    color: #c62828;
+}
+
+
+.configured-dish-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 9px;
+    background: #eef4ff;
+    color: #1f5eff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.habit-cell.current-week {
+    box-shadow: inset 0 0 0 1px rgba(31, 94, 255, 0.16);
+}
+
+
+/* =========================================
+   DISH BUILDER
+========================================= */
+.dish-builder-card { margin-top: 16px; }
+.dish-builder-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:18px 0 10px; }
+.dish-ingredient-row { display:grid; grid-template-columns: 1.2fr 1.2fr .7fr auto; gap:8px; margin-bottom:10px; align-items:center; }
+.dish-ingredient-row input, .dish-ingredient-row select { width:100%; min-width:0; }
+.dish-summary { padding:12px; background:#f7f9ff; border:1px solid #dbe5ff; border-radius:10px; margin-top:14px; line-height:1.8; }
+.dish-builder-actions { display:flex; gap:8px; margin-top:14px; }
+@media (max-width:700px) { .dish-ingredient-row { grid-template-columns:1fr; } .dish-builder-heading { align-items:flex-start; flex-direction:column; } }
+
+/* =========================================
+   TRUE GITHUB-STYLE YEAR GRID
+========================================= */
+.streak-item { overflow:hidden; }
+.habit-heatmap.centered-year-heatmap {
+    display:grid;
+    grid-template-rows:repeat(7, 10px);
+    grid-template-columns:repeat(53, 10px);
+    grid-auto-flow:column;
+    gap:3px;
+    width:max-content;
+    margin:14px auto 4px;
+}
+.habit-heatmap.centered-year-heatmap .habit-cell {
+    width:10px; height:10px; border-radius:2px;
+}
+.habit-heatmap.centered-year-heatmap .habit-cell.current-week {
+    box-shadow:inset 0 0 0 1px rgba(31,94,255,.35);
+}
+.habit-heatmap.centered-year-heatmap .habit-cell.today-cell {
+    outline:2px solid #1f5eff; outline-offset:2px;
+}
+@media (max-width:700px) {
+    .habit-heatmap.centered-year-heatmap {
+        grid-template-rows:repeat(7,6px);
+        grid-template-columns:repeat(53,6px);
+        gap:2px;
+    }
+    .habit-heatmap.centered-year-heatmap .habit-cell { width:6px; height:6px; }
+}

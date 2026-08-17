@@ -266,12 +266,12 @@
     <!-- NAVIGATION -->
     <nav class="tabs">
 
-        <button class="tab active" data-page="dailyPage">
-            Daily Log
+        <button class="tab active" data-page="progressPage">
+            Progress
         </button>
 
-        <button class="tab" data-page="progressPage">
-            Progress
+        <button class="tab" data-page="dailyPage">
+            Daily Log
         </button>
 
         <button class="tab" data-page="weightPage">
@@ -289,7 +289,7 @@
     <!-- DAILY LOG -->
     <!-- ================================================= -->
 
-    <section id="dailyPage" class="page active">
+    <section id="dailyPage" class="page">
 
         <div class="card">
 
@@ -300,7 +300,6 @@
             <input id="logDate" type="date">
 
         </div>
-
 
         <div id="mealSections"></div>
 
@@ -346,26 +345,39 @@
             </div>
 
         </div>
-
-
-        <!-- SUPPLEMENTS -->
-
-        <div class="card">
-
-            <h2>Supplements</h2>
-
-            <div id="supplementChecklist" class="checklist"></div>
-
-        </div>
-
-
         <button id="saveDayBtn" class="primary-btn">
             SAVE DAY
         </button>
 
+        <div class="card">
+            <h2>Daily Logs — Saved Dates</h2>
+            <div class="date-range">
+                <div>
+                    <label class="label">From</label>
+                    <input id="dailyHistoryFromDate" type="date">
+                </div>
+                <div>
+                    <label class="label">To</label>
+                    <input id="dailyHistoryToDate" type="date">
+                </div>
+            </div>
+            <div id="historyList"></div>
+        </div>
+
+        <div class="card habit-card daily-trackers-card">
+            <div class="section-heading-row">
+                <div>
+                    <h2>Daily Trackers</h2>
+                    <p class="muted">Leave Sugar and Main unticked when you successfully avoid them.</p>
+                </div>
+            </div>
+            <div id="dailyTrackerList" class="habit-list"></div>
+        </div>
+
         <p id="saveMessage" class="message"></p>
 
-    </section>
+
+</section>
 
 
 
@@ -373,7 +385,166 @@
     <!-- PROGRESS -->
     <!-- ================================================= -->
 
-    <section id="progressPage" class="page">
+    <section id="progressPage" class="page active">
+        <!-- DAILY PROGRESS DASHBOARD -->
+
+        <div class="card progress-dashboard">
+
+            <div class="progress-title-row">
+                <div>
+                    <h2>Today's Progress</h2>
+                    <p class="muted">Your nutrition targets and daily habit streaks.</p>
+                </div>
+            </div>
+
+            <div class="ring-grid">
+
+                <div class="ring-card protein-ring">
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 140 140" class="progress-ring">
+                            <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+                            <circle id="proteinRingProgress" class="ring-progress" cx="70" cy="70" r="54"></circle>
+                        </svg>
+                        <div class="ring-center">
+                            <strong id="proteinRingValue">0</strong>
+                            <span>g</span>
+                        </div>
+                    </div>
+                    <strong>Protein</strong>
+                    <small><span id="proteinRingTarget">120</span> g target</small>
+                </div>
+
+                <div class="ring-card calories-ring">
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 140 140" class="progress-ring">
+                            <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+                            <circle id="caloriesRingProgress" class="ring-progress" cx="70" cy="70" r="54"></circle>
+                        </svg>
+                        <div class="ring-center">
+                            <strong id="caloriesRingValue">0</strong>
+                            <span>kcal</span>
+                        </div>
+                    </div>
+                    <strong>Calories</strong>
+                    <small><span id="caloriesRingTarget">1200</span> kcal target</small>
+                </div>
+
+                <div class="ring-card fibre-ring">
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 140 140" class="progress-ring">
+                            <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+                            <circle id="fibreRingProgress" class="ring-progress" cx="70" cy="70" r="54"></circle>
+                        </svg>
+                        <div class="ring-center">
+                            <strong id="fibreRingValue">0</strong>
+                            <span>g</span>
+                        </div>
+                    </div>
+                    <strong>Fibre</strong>
+                    <small><span id="fibreRingTarget">30</span> g target</small>
+                </div>
+
+            </div>
+
+            <div class="target-editor">
+
+                <h3>Daily Targets</h3>
+
+                <div class="target-grid">
+
+                    <label>
+                        Protein (g)
+                        <input id="proteinTarget" type="number" min="1" step="1" value="120">
+                    </label>
+
+                    <label>
+                        Calories (kcal)
+                        <input id="calorieTarget" type="number" min="1" step="50" value="1200">
+                    </label>
+
+                    <label>
+                        Fibre (g)
+                        <input id="fibreTarget" type="number" min="1" step="1" value="30">
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card streak-dashboard">
+
+            <div class="progress-title-row">
+                <div>
+                    <h2>Habit Streaks</h2>
+                    <p class="muted">Your last 12 months, GitHub-style.</p>
+                </div>
+            </div>
+
+            <div class="streak-list">
+
+                <div class="streak-item">
+                    <div class="streak-header">
+                        <div>
+                            <strong>Gym</strong>
+                            <small>Current streak</small>
+                        </div>
+                        <div class="streak-number">
+                            <span id="gymStreak">0</span>
+                            <small>days</small>
+                        </div>
+                    </div>
+                    <div id="gymTrackerGrid" class="habit-heatmap" aria-label="Gym activity"></div>
+                </div>
+
+                <div class="streak-item">
+                    <div class="streak-header">
+                        <div>
+                            <strong>Sugar Free</strong>
+                            <small>Current streak</small>
+                        </div>
+                        <div class="streak-number">
+                            <span id="sugarStreak">0</span>
+                            <small>days</small>
+                        </div>
+                    </div>
+                    <div id="sugarTrackerGrid" class="habit-heatmap" aria-label="Sugar-free activity"></div>
+                </div>
+
+                <div class="streak-item">
+                    <div class="streak-header">
+                        <div>
+                            <strong>Main</strong>
+                            <small>Current streak</small>
+                        </div>
+                        <div class="streak-number">
+                            <span id="mainStreak">0</span>
+                            <small>days</small>
+                        </div>
+                    </div>
+                    <div id="mainTrackerGrid" class="habit-heatmap" aria-label="Main activity"></div>
+                </div>
+
+                <div class="streak-item">
+                    <div class="streak-header">
+                        <div>
+                            <strong>Supplements</strong>
+                            <small>Current streak</small>
+                        </div>
+                        <div class="streak-number">
+                            <span id="supplementsStreak">0</span>
+                            <small>days</small>
+                        </div>
+                    </div>
+                    <div id="supplementsTrackerGrid" class="habit-heatmap" aria-label="Supplements activity"></div>
+                </div>
+
+            </div>
+
+        </div>
+
 
         <div class="card">
 
@@ -444,14 +615,6 @@
 
         </div>
 
-
-        <div class="card">
-
-            <h2>Saved Days</h2>
-
-            <div id="historyList"></div>
-
-        </div>
 
     </section>
 
@@ -637,6 +800,8 @@
             <div id="weightHistory"></div>
 
         </div>
+
+
 
     </section>
 
@@ -935,6 +1100,47 @@
 
         </form>
 
+
+
+        <!-- DISH BUILDER -->
+        <div id="dishBuilderCard" class="card dish-builder-card" style="display:none;">
+            <h2>Add Dish</h2>
+            <p class="muted">Build a dish from your saved Food Items. The dish will use the configured quantities automatically when you log it.</p>
+
+            <label class="label">
+                Dish Name
+                <input id="dishName" type="text" placeholder="Example: Chicken Rice Bowl">
+            </label>
+
+            <div class="dish-builder-heading">
+                <div>
+                    <h3>Food Items</h3>
+                    <p class="muted">Search or choose one of your saved Food Items, then enter the quantity in grams.</p>
+                </div>
+                <button id="addDishIngredientBtn" class="secondary-btn" type="button">+ Add Food Item</button>
+            </div>
+
+            <p id="dishEmptyFoodMessage" class="muted" style="display:none;">Add at least one Food Item first.</p>
+            <div id="dishIngredients"></div>
+
+            <div class="dish-summary">
+                <strong>Dish total</strong>
+                <span id="dishTotalWeight">0</span> g ·
+                <span id="dishTotalCalories">0</span> kcal ·
+                <span id="dishTotalProtein">0</span> g protein ·
+                <span id="dishTotalCarbs">0</span> g carbs ·
+                <span id="dishTotalFat">0</span> g fat ·
+                <span id="dishTotalFibre">0</span> g fibre
+            </div>
+
+            <p class="muted">Per 100 g: <span id="dishPer100Summary">0 kcal · 0 g protein · 0 g carbs · 0 g fat · 0 g fibre</span></p>
+
+            <div class="dish-builder-actions">
+                <button id="saveDishBtn" class="primary-btn" type="button">SAVE DISH</button>
+                <button id="cancelDishBtn" class="secondary-btn" type="button">CLEAR</button>
+            </div>
+            <p id="dishMessage" class="message"></p>
+        </div>
 
 
         <!-- FOOD LIST -->

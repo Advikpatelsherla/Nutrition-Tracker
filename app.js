@@ -14,6 +14,15 @@ const SUPPLEMENT_STORAGE =
 const WEIGHT_STORAGE =
     "nutritionTrackerWeights";
 
+const TRACKER_STORAGE =
+    "nutritionTrackerTrackers";
+
+const TARGET_STORAGE =
+    "nutritionTrackerTargets";
+
+const SAVED_DATES_STORAGE =
+    "nutritionTrackerSavedDates";
+
 
 /* =========================================
    DATA
@@ -34,6 +43,13 @@ let logs =
         )
     ) || [];
 
+let savedDates =
+    JSON.parse(
+        localStorage.getItem(
+            SAVED_DATES_STORAGE
+        )
+    ) || [...new Set(logs.map(item => item.date))];
+
 
 let supplementLogs =
     JSON.parse(
@@ -49,6 +65,24 @@ let weightLogs =
             WEIGHT_STORAGE
         )
     ) || [];
+
+let trackerLogs =
+    JSON.parse(
+        localStorage.getItem(
+            TRACKER_STORAGE
+        )
+    ) || {};
+
+let targets =
+    JSON.parse(
+        localStorage.getItem(
+            TARGET_STORAGE
+        )
+    ) || {
+        protein: 120,
+        calories: 1200,
+        fibre: 30
+    };
 
 
 let selectedCategory =
@@ -119,6 +153,11 @@ async function saveStorage() {
     );
 
     localStorage.setItem(
+        SAVED_DATES_STORAGE,
+        JSON.stringify(savedDates)
+    );
+
+    localStorage.setItem(
         SUPPLEMENT_STORAGE,
         JSON.stringify(supplementLogs)
     );
@@ -156,8 +195,11 @@ async function saveStorage() {
             {
                 foods: foods,
                 logs: logs,
+                savedDates: savedDates,
                 supplementLogs: supplementLogs,
                 weightLogs: weightLogs,
+                trackerLogs: trackerLogs,
+                targets: targets,
                 updatedAt: new Date().toISOString()
             }
         );
@@ -238,6 +280,20 @@ async function loadDataFromFirestore() {
 
             }
 
+            if (Array.isArray(data.savedDates)) {
+                savedDates = data.savedDates;
+                localStorage.setItem(
+                    SAVED_DATES_STORAGE,
+                    JSON.stringify(savedDates)
+                );
+            } else {
+                savedDates = [...new Set(logs.map(item => item.date))];
+                localStorage.setItem(
+                    SAVED_DATES_STORAGE,
+                    JSON.stringify(savedDates)
+                );
+            }
+
             if (
                 data.supplementLogs &&
                 typeof data.supplementLogs === "object"
@@ -269,6 +325,43 @@ async function loadDataFromFirestore() {
 
             }
 
+            if (
+                data.trackerLogs &&
+                typeof data.trackerLogs === "object"
+            ) {
+
+                trackerLogs =
+                    data.trackerLogs;
+
+                localStorage.setItem(
+                    TRACKER_STORAGE,
+                    JSON.stringify(
+                        trackerLogs
+                    )
+                );
+
+            }
+
+            if (
+                data.targets &&
+                typeof data.targets === "object"
+            ) {
+
+                targets = {
+                    protein: Number(data.targets.protein) || 120,
+                    calories: Number(data.targets.calories) || 1200,
+                    fibre: Number(data.targets.fibre) || 30
+                };
+
+                localStorage.setItem(
+                    TARGET_STORAGE,
+                    JSON.stringify(
+                        targets
+                    )
+                );
+
+            }
+
             console.log(
                 "Nutrition data loaded from Firestore."
             );
@@ -288,7 +381,8 @@ async function loadDataFromFirestore() {
                 Object.keys(
                     supplementLogs
                 ).length > 0 ||
-                weightLogs.length > 0;
+                weightLogs.length > 0 ||
+                Object.keys(trackerLogs).length > 0;
 
             if (hasLocalData) {
 
@@ -297,10 +391,15 @@ async function loadDataFromFirestore() {
                     {
                         foods: foods,
                         logs: logs,
+                        savedDates: savedDates,
                         supplementLogs:
                             supplementLogs,
                         weightLogs:
                             weightLogs,
+                        trackerLogs:
+                            trackerLogs,
+                        targets:
+                            targets,
                         updatedAt:
                             new Date().toISOString()
                     }
@@ -340,11 +439,24 @@ async function initializeAppData() {
 
     renderSupplements();
 
+    loadTargetInputs();
+
+    renderMeals();
+
+    renderSupplements();
+
     renderFoodList();
+
+    renderDailyTrackers();
 
     calculateTotals();
 
     renderHistory();
+    renderProgressAverages();
+
+    renderProgressTrackers();
+
+    updateRings();
 
     renderWeightPage();
 
@@ -352,13 +464,31 @@ async function initializeAppData() {
 
 
 /* =========================================
-   DATE
+   DATE + DAILY TARGETS
 ========================================= */
 
+function getLocalDateString(date = new Date()) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+
+}
+
+
 const today =
-    new Date()
-        .toISOString()
-        .split("T")[0];
+    getLocalDateString();
 
 
 getElement(
@@ -375,10 +505,562 @@ getElement(
     "toDate"
 ).value = today;
 
+if (getElement("dailyHistoryFromDate")) {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    getElement("dailyHistoryFromDate").value = getLocalDateString(oneYearAgo);
+}
+if (getElement("dailyHistoryToDate")) getElement("dailyHistoryToDate").value = today;
+
 
 getElement(
     "weightDate"
 ).value = today;
+
+
+function saveTargets() {
+
+    targets.protein =
+        Number(
+            getElement(
+                "proteinTarget"
+            ).value
+        ) || 120;
+
+    targets.calories =
+        Number(
+            getElement(
+                "calorieTarget"
+            ).value
+        ) || 1200;
+
+    targets.fibre =
+        Number(
+            getElement(
+                "fibreTarget"
+            ).value
+        ) || 30;
+
+    localStorage.setItem(
+        TARGET_STORAGE,
+        JSON.stringify(targets)
+    );
+
+    saveStorage();
+
+    updateRings();
+
+}
+
+
+function loadTargetInputs() {
+
+    if (
+        getElement("proteinTarget")
+    ) {
+        getElement(
+            "proteinTarget"
+        ).value =
+            targets.protein;
+    }
+
+    if (
+        getElement("calorieTarget")
+    ) {
+        getElement(
+            "calorieTarget"
+        ).value =
+            targets.calories;
+    }
+
+    if (
+        getElement("fibreTarget")
+    ) {
+        getElement(
+            "fibreTarget"
+        ).value =
+            targets.fibre;
+    }
+
+}
+
+
+/* =========================================
+   DAILY HABIT TRACKERS
+========================================= */
+
+const TRACKERS = [
+    {
+        key: "gym",
+        name: "Gym",
+        successValue: true,
+        help: "Tick when you went to the gym."
+    },
+    {
+        key: "sugar",
+        name: "Sugar",
+        successValue: false,
+        help: "Tick when you took sugar. Streak counts sugar-free days."
+    },
+    {
+        key: "main",
+        name: "Main",
+        successValue: false,
+        help: "Tick when your main daily goal is complete."
+    },
+    {
+        key: "supplements",
+        name: "Supplements",
+        successValue: true,
+        help: "Tick when you completed your supplements."
+    }
+];
+
+
+function getTrackerDate() {
+
+    return getElement(
+        "logDate"
+    ).value || getLocalDateString();
+
+}
+
+
+function setTrackerValue(
+    date,
+    key,
+    value
+) {
+
+    if (
+        !trackerLogs[date]
+    ) {
+        trackerLogs[date] = {};
+    }
+
+    trackerLogs[date][key] =
+        value;
+
+    saveStorage();
+
+    renderDailyTrackers();
+    renderProgressTrackers();
+
+}
+
+
+function renderDailyTrackers() {
+
+    const container =
+        getElement(
+            "dailyTrackerList"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const date =
+        getTrackerDate();
+
+    const saved =
+        trackerLogs[date] || {};
+
+    container.innerHTML = "";
+
+    TRACKERS.forEach(
+        tracker => {
+
+            const label =
+                document.createElement(
+                    "label"
+                );
+
+            label.className =
+                "habit-check";
+
+            const checkbox =
+                document.createElement(
+                    "input"
+                );
+
+            checkbox.type =
+                "checkbox";
+
+            checkbox.checked =
+                saved[tracker.key] === true;
+
+            checkbox.addEventListener(
+                "change",
+                function () {
+
+                    setTrackerValue(
+                        date,
+                        tracker.key,
+                        checkbox.checked
+                    );
+
+                }
+            );
+
+            const text =
+                document.createElement(
+                    "span"
+                );
+
+            text.innerHTML = `
+                <strong>${tracker.name}</strong>
+                <small>${tracker.help}</small>
+            `;
+
+            label.appendChild(
+                checkbox
+            );
+
+            label.appendChild(
+                text
+            );
+
+            container.appendChild(
+                label
+            );
+
+        }
+    );
+
+}
+
+
+function trackerSucceeded(
+    date,
+    tracker
+) {
+
+    if (
+        !trackerLogs[date] ||
+        typeof trackerLogs[date][tracker.key] !==
+            "boolean"
+    ) {
+        return false;
+    }
+
+    return (
+        trackerLogs[date][tracker.key] ===
+        tracker.successValue
+    );
+
+}
+
+
+function getTrackerStreak(
+    tracker
+) {
+
+    let streak = 0;
+
+    const date =
+        new Date();
+
+    while (true) {
+
+        const dateString =
+            getLocalDateString(
+                date
+            );
+
+        if (
+            !trackerSucceeded(
+                dateString,
+                tracker
+            )
+        ) {
+            break;
+        }
+
+        streak++;
+
+        date.setDate(
+            date.getDate() - 1
+        );
+
+    }
+
+    return streak;
+
+}
+
+
+function formatShortDate(
+    dateString
+) {
+
+    const date =
+        new Date(
+            `${dateString}T00:00:00`
+        );
+
+    return date.toLocaleDateString(
+        undefined,
+        {
+            month: "short",
+            day: "numeric"
+        }
+    );
+
+}
+
+
+function renderTrackerHeatmap(
+    tracker,
+    grid,
+    streakElement
+) {
+
+    if (!grid) return;
+
+    grid.innerHTML = "";
+    grid.classList.add("centered-year-heatmap");
+
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+
+    // Start on Sunday, 26 weeks before the current week.
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(
+        currentWeekStart.getDate() - currentWeekStart.getDay()
+    );
+
+    const startDate = new Date(currentWeekStart);
+    startDate.setDate(startDate.getDate() - (26 * 7));
+
+    const totalWeeks = 53;
+
+    for (let week = 0; week < totalWeeks; week++) {
+        for (let day = 0; day < 7; day++) {
+            const cursor = new Date(startDate);
+            cursor.setDate(cursor.getDate() + (week * 7) + day);
+
+            const dateString = getLocalDateString(cursor);
+            const cell = document.createElement("span");
+            cell.className = "habit-cell";
+
+            const hasEntry =
+                trackerLogs[dateString] &&
+                typeof trackerLogs[dateString][tracker.key] === "boolean";
+
+            if (hasEntry && trackerSucceeded(dateString, tracker)) {
+                cell.classList.add("done");
+            } else if (hasEntry) {
+                cell.classList.add("failed");
+            } else if (dateString > getLocalDateString()) {
+                cell.classList.add("future");
+            }
+
+            if (week === 26) {
+                cell.classList.add("current-week");
+            }
+
+            if (dateString === getLocalDateString(today)) {
+                cell.classList.add("today-cell");
+            }
+
+            cell.title = `${tracker.name} • ${formatShortDate(dateString)}`;
+            grid.appendChild(cell);
+        }
+    }
+
+    if (streakElement) {
+        streakElement.textContent = getTrackerStreak(tracker);
+    }
+}
+
+
+function renderProgressTrackers() {
+
+    TRACKERS.forEach(
+        tracker => {
+
+            renderTrackerHeatmap(
+                tracker,
+                getElement(
+                    `${tracker.key}TrackerGrid`
+                ),
+                getElement(
+                    `${tracker.key}Streak`
+                )
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================
+   NUTRITION RINGS
+========================================= */
+
+function updateRings(
+    suppliedTotal = null
+) {
+
+    const total =
+        suppliedTotal || calculateCurrentFoodTotal();
+
+    const ringData = [
+        {
+            key: "protein",
+            value: total.protein,
+            target: Number(
+                targets.protein
+            ) || 120
+        },
+        {
+            key: "calories",
+            value: total.calories,
+            target: Number(
+                targets.calories
+            ) || 1200
+        },
+        {
+            key: "fibre",
+            value: total.fibre,
+            target: Number(
+                targets.fibre
+            ) || 30
+        }
+    ];
+
+    ringData.forEach(
+        item => {
+
+            const circle =
+                getElement(
+                    `${item.key}RingProgress`
+                );
+
+            const value =
+                getElement(
+                    `${item.key}RingValue`
+                );
+
+            const target =
+                getElement(
+                    `${item.key}RingTarget`
+                );
+
+            if (
+                !circle ||
+                !value ||
+                !target
+            ) {
+                return;
+            }
+
+            const radius =
+                Number(
+                    circle.getAttribute(
+                        "r"
+                    )
+                );
+
+            const circumference =
+                2 *
+                Math.PI *
+                radius;
+
+            const percent =
+                Math.min(
+                    Math.max(
+                        item.value /
+                        item.target,
+                        0
+                    ),
+                    1
+                );
+
+            circle.style.strokeDasharray =
+                circumference;
+
+            circle.style.strokeDashoffset =
+                circumference *
+                (1 - percent);
+
+            value.textContent =
+                item.key === "calories"
+                    ? Math.round(
+                        item.value
+                    )
+                    : item.value.toFixed(
+                        1
+                    );
+
+            target.textContent =
+                item.target;
+
+        }
+    );
+
+}
+
+
+function calculateCurrentFoodTotal() {
+
+    const total = {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fibre: 0
+    };
+
+    const date =
+        getElement(
+            "logDate"
+        )?.value ||
+        getLocalDateString();
+
+    logs
+        .filter(
+            item =>
+                item.date === date
+        )
+        .forEach(
+            item => {
+
+                const nutrition =
+                    getNutrition(
+                        item.food,
+                        item.amount
+                    );
+
+                if (
+                    nutrition
+                ) {
+
+                    total.calories +=
+                        nutrition.calories;
+
+                    total.protein +=
+                        nutrition.protein;
+
+                    total.carbs +=
+                        nutrition.carbs;
+
+                    total.fat +=
+                        nutrition.fat;
+
+                    total.fibre +=
+                        nutrition.fibre;
+
+                }
+
+            }
+        );
+
+    return total;
+
+}
 
 
 /* =========================================
@@ -465,6 +1147,33 @@ document
         );
 
     });
+
+
+/* =========================================
+   TARGET EDITING
+========================================= */
+
+[
+    "proteinTarget",
+    "calorieTarget",
+    "fibreTarget"
+].forEach(
+    id => {
+
+        const input =
+            getElement(id);
+
+        if (input) {
+
+            input.addEventListener(
+                "change",
+                saveTargets
+            );
+
+        }
+
+    }
+);
 
 
 /* =========================================
@@ -603,48 +1312,28 @@ function addFoodRow(
 
     const foodSelect =
         document.createElement(
-            "select"
+            "input"
         );
 
+    foodSelect.type = "search";
+    foodSelect.placeholder = "Search food, protein powder or dish...";
+    foodSelect.setAttribute("autocomplete", "off");
 
-    foodSelect.innerHTML = `
+    const listId = "meal-food-list-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+    foodSelect.setAttribute("list", listId);
 
-        <option value="">
-            Select Food
-        </option>
-
-    `;
-
+    const foodList = document.createElement("datalist");
+    foodList.id = listId;
 
     foods
-        .filter(
-            food =>
-                food.category !==
-                "supplement"
-        )
-        .forEach(
-            food => {
+        .filter(food => food.category !== "supplement")
+        .forEach(food => {
+            const option = document.createElement("option");
+            option.value = food.name;
+            foodList.appendChild(option);
+        });
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                option.value =
-                    food.name;
-
-
-                option.textContent =
-                    food.name;
-
-
-                foodSelect.appendChild(
-                    option
-                );
-
-            }
-        );
+    foodSelect.dataset.foodSearch = "true";
 
 
     const amountContainer =
@@ -677,6 +1366,10 @@ function addFoodRow(
 
     row.appendChild(
         foodSelect
+    );
+
+    row.appendChild(
+        foodList
     );
 
 
@@ -777,7 +1470,18 @@ function addFoodRow(
             );
 
 
-        if (
+        if (food && food.category === "dish") {
+
+            row.dataset.amount = "1 dish";
+
+            const configured = document.createElement("span");
+            configured.className = "configured-dish-label";
+            configured.textContent = "Configured dish";
+            amountContainer.appendChild(configured);
+
+        }
+
+        else if (
             food &&
             food.servingOptions &&
             food.servingOptions.length > 0
@@ -900,22 +1604,18 @@ function addFoodRow(
 
 
     foodSelect.addEventListener(
-        "change",
+        "input",
         function () {
 
-            row.dataset.food =
-                foodSelect.value;
+            const match = foods.find(
+                food => food.name.toLowerCase() === foodSelect.value.trim().toLowerCase()
+            );
 
-
-            row.dataset.amount =
-                "";
-
+            row.dataset.food = match ? match.name : "";
+            row.dataset.amount = "";
 
             renderAmountButtons();
-
-
             calculateTotals();
-
         }
     );
 
@@ -997,6 +1697,11 @@ function getQuantityInGrams(
         );
 
 
+    if (amount === "1 dish" && food && food.category === "dish") {
+        return Number(food.totalWeight || food.servingWeight || 0);
+    }
+
+
     if (
         amount.endsWith(
             " g"
@@ -1039,6 +1744,23 @@ function getQuantityInGrams(
 /* =========================================
    NUTRITION
 ========================================= */
+
+
+function isDishFood(foodName) {
+    const food = foods.find(item => item.name === foodName);
+    return !!food && food.category === "dish";
+}
+
+function getDishNutrition(food) {
+    if (!food || food.category !== "dish") return null;
+    return {
+        calories: Number(food.calories) || 0,
+        protein: Number(food.protein) || 0,
+        carbs: Number(food.carbs) || 0,
+        fat: Number(food.fat) || 0,
+        fibre: Number(food.fibre) || 0
+    };
+}
 
 function getNutrition(
     foodName,
@@ -1214,6 +1936,10 @@ function calculateTotals() {
             1
         );
 
+    updateRings(
+        total
+    );
+
 
     return total;
 
@@ -1222,119 +1948,12 @@ function calculateTotals() {
 
 /* =========================================
    SUPPLEMENTS
+   Supplements are tracked by the Daily Trackers checkbox.
 ========================================= */
 
 function renderSupplements() {
-
-    const container =
-        getElement(
-            "supplementChecklist"
-        );
-
-
-    const date =
-        getElement(
-            "logDate"
-        ).value;
-
-
-    const saved =
-        supplementLogs[
-            date
-        ] || {};
-
-
-    container.innerHTML =
-        "";
-
-
-    const supplements = [
-
-        "Protein",
-
-        "Omega-3 / Fish Oil",
-
-        "Creatine"
-
-    ];
-
-
-    supplements.forEach(
-        name => {
-
-            const label =
-                document.createElement(
-                    "label"
-                );
-
-
-            label.className =
-                "check-item";
-
-
-            const checkbox =
-                document.createElement(
-                    "input"
-                );
-
-
-            checkbox.type =
-                "checkbox";
-
-
-            checkbox.checked =
-                saved[name] ===
-                true;
-
-
-            checkbox.addEventListener(
-                "change",
-                function () {
-
-                    if (
-                        !supplementLogs[
-                            date
-                        ]
-                    ) {
-
-                        supplementLogs[
-                            date
-                        ] = {};
-
-                    }
-
-
-                    supplementLogs[
-                        date
-                    ][name] =
-                        checkbox.checked;
-
-
-                    saveStorage();
-
-                }
-            );
-
-
-            label.appendChild(
-                checkbox
-            );
-
-
-            label.appendChild(
-                document.createTextNode(
-                    name
-                )
-            );
-
-
-            container.appendChild(
-                label
-            );
-
-        }
-    );
-
+    // Kept for compatibility with older calls.
+    renderDailyTrackers();
 }
 
 
@@ -1352,7 +1971,13 @@ getElement(
 
         renderSupplements();
 
+        renderDailyTrackers();
+
         calculateTotals();
+
+        renderProgressTrackers();
+
+        updateRings();
 
     }
 );
@@ -1373,6 +1998,10 @@ getElement(
                 "logDate"
             ).value;
 
+        if (date && !savedDates.includes(date)) {
+            savedDates.push(date);
+            savedDates.sort();
+        }
 
         logs =
             logs.filter(
@@ -1456,222 +2085,146 @@ getElement(
 
 
 /* =========================================
-   NUTRITION PROGRESS
+   NUTRITION PROGRESS / SAVED DAILY LOGS
 ========================================= */
+
+function deleteDailyLog(date) {
+
+    const ok = confirm(
+        `Delete the saved Daily Log for ${date}?
+
+All food entries and tracker values for this date will be reset.`
+    );
+
+    if (!ok) return;
+
+    logs = logs.filter(item => item.date !== date);
+    savedDates = savedDates.filter(savedDate => savedDate !== date);
+
+    delete trackerLogs[date];
+    delete supplementLogs[date];
+
+    saveStorage();
+
+    renderHistory();
+    renderProgressAverages();
+    renderDailyTrackers();
+    renderProgressTrackers();
+    renderMeals();
+    calculateTotals();
+    updateRings();
+}
+
+function renderProgressAverages() {
+    const from = getElement("fromDate")?.value || getLocalDateString();
+    const to = getElement("toDate")?.value || getLocalDateString();
+    const dates = savedDates.filter(date => date >= from && date <= to);
+    const dailyTotals = [];
+
+    dates.forEach(date => {
+        const total = { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 };
+        logs.filter(item => item.date === date).forEach(item => {
+            const nutrition = getNutrition(item.food, item.amount);
+            if (!nutrition) return;
+            total.calories += nutrition.calories;
+            total.protein += nutrition.protein;
+            total.carbs += nutrition.carbs;
+            total.fat += nutrition.fat;
+            total.fibre += nutrition.fibre;
+        });
+        dailyTotals.push(total);
+    });
+
+    updateAverages(dailyTotals);
+}
 
 function renderHistory() {
 
-    const from =
-        getElement(
-            "fromDate"
-        ).value;
+    const from = getElement("dailyHistoryFromDate")?.value || getElement("fromDate").value;
+    const to = getElement("dailyHistoryToDate")?.value || getElement("toDate").value;
+    const history = getElement("historyList");
 
+    history.innerHTML = "";
 
-    const to =
-        getElement(
-            "toDate"
-        ).value;
-
-
-    const dates = [
-
-        ...
-        new Set(
-
-            logs
-                .map(
-                    item =>
-                        item.date
-                )
-                .filter(
-                    date =>
-                        date >= from &&
-                        date <= to
-                )
-
-        )
-
-    ]
+    const dates = savedDates
+        .filter(date => date >= from && date <= to)
         .sort()
         .reverse();
 
-
-    const history =
-        getElement(
-            "historyList"
-        );
-
-
-    history.innerHTML =
-        "";
-
-
-    if (
-        dates.length === 0
-    ) {
-
+    if (dates.length === 0) {
         history.innerHTML = `
-
-            <p class="muted">
-
-                No saved days in
-                this date range.
-
-            </p>
-
+            <p class="muted">No saved Daily Logs in this date range.</p>
         `;
-
-
-        updateAverages(
-            []
-        );
-
-
+        updateAverages([]);
         return;
-
     }
-
 
     const dailyTotals = [];
 
+    dates.forEach(date => {
 
-    dates.forEach(
-        date => {
+        const total = {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fibre: 0
+        };
 
-            const total = {
+        logs
+            .filter(item => item.date === date)
+            .forEach(item => {
+                const nutrition = getNutrition(item.food, item.amount);
+                if (!nutrition) return;
+                total.calories += nutrition.calories;
+                total.protein += nutrition.protein;
+                total.carbs += nutrition.carbs;
+                total.fat += nutrition.fat;
+                total.fibre += nutrition.fibre;
+            });
 
-                calories: 0,
+        dailyTotals.push(total);
 
-                protein: 0,
+        const row = document.createElement("div");
+        row.className = "history-row daily-log-history-row";
 
-                carbs: 0,
+        const info = document.createElement("div");
+        info.innerHTML = `
+            <strong>${date}</strong><br>
+            <span class="muted">${total.calories.toFixed(0)} kcal · ${total.protein.toFixed(1)} g protein · ${total.fibre.toFixed(1)} g fibre</span>
+        `;
 
-                fat: 0,
+        const actions = document.createElement("div");
+        actions.className = "history-actions";
 
-                fibre: 0
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "history-open-btn";
+        openButton.textContent = "Open";
+        openButton.addEventListener("click", () => {
+            getElement("logDate").value = date;
+            document.querySelector('[data-page="dailyPage"]').click();
+            renderMeals();
+            renderDailyTrackers();
+            calculateTotals();
+            updateRings();
+        });
 
-            };
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "history-delete-btn";
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", event => {
+            event.stopPropagation();
+            deleteDailyLog(date);
+        });
 
+        actions.append(openButton, deleteButton);
+        row.append(info, actions);
+        history.appendChild(row);
+    });
 
-            logs
-                .filter(
-                    item =>
-                        item.date ===
-                        date
-                )
-                .forEach(
-                    item => {
-
-                        const nutrition =
-                            getNutrition(
-                                item.food,
-                                item.amount
-                            );
-
-
-                        if (
-                            nutrition
-                        ) {
-
-                            total.calories +=
-                                nutrition.calories;
-
-                            total.protein +=
-                                nutrition.protein;
-
-                            total.carbs +=
-                                nutrition.carbs;
-
-                            total.fat +=
-                                nutrition.fat;
-
-                            total.fibre +=
-                                nutrition.fibre;
-
-                        }
-
-                    }
-                );
-
-
-            dailyTotals.push(
-                total
-            );
-
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-
-            row.className =
-                "history-row";
-
-
-            row.innerHTML = `
-
-                <strong>
-                    ${date}
-                </strong>
-
-                <br>
-
-                <span class="muted">
-
-                    ${total.calories.toFixed(0)}
-                    kcal ·
-
-                    ${total.protein.toFixed(1)}
-                    g protein ·
-
-                    ${total.fibre.toFixed(1)}
-                    g fibre
-
-                </span>
-
-            `;
-
-
-            row.addEventListener(
-                "click",
-                function () {
-
-                    getElement(
-                        "logDate"
-                    ).value =
-                        date;
-
-
-                    document
-                        .querySelector(
-                            '[data-page="dailyPage"]'
-                        )
-                        .click();
-
-
-                    renderMeals();
-
-                    renderSupplements();
-
-                    calculateTotals();
-
-                }
-            );
-
-
-            history.appendChild(
-                row
-            );
-
-        }
-    );
-
-
-    updateAverages(
-        dailyTotals
-    );
-
+    updateAverages(dailyTotals);
 }
 
 
@@ -1770,114 +2323,338 @@ getElement(
     "fromDate"
 ).addEventListener(
     "change",
-    renderHistory
+    renderProgressAverages
 );
+
+getElement("dailyHistoryFromDate")?.addEventListener("change", renderHistory);
+getElement("dailyHistoryToDate")?.addEventListener("change", renderHistory);
 
 
 getElement(
     "toDate"
 ).addEventListener(
     "change",
-    renderHistory
+    renderProgressAverages
 );
 
 
 /* =========================================
-   FOOD CATEGORY
+   FOOD CATEGORY + DISH BUILDER
 ========================================= */
 
-document
-    .querySelectorAll(
-        ".category-btn"
-    )
-    .forEach(
-        button => {
+function updateFoodCategoryUI() {
 
-            button.addEventListener(
-                "click",
-                function () {
-
-                    document
-                        .querySelectorAll(
-                            ".category-btn"
-                        )
-                        .forEach(
-                            btn => {
-
-                                btn.classList
-                                    .remove(
-                                        "active"
-                                    );
-
-                            }
-                        );
-
-
-                    button.classList.add(
-                        "active"
-                    );
-
-
-                    selectedCategory =
-                        button.dataset.category;
-                    renderFoodList();
-
-                    if (
-                        selectedCategory ===
-                        "protein"
-                    ) {
-
-                        getElement(
-                            "formTitle"
-                        ).textContent =
-                            "Add Protein Powder";
-
-
-                        getElement(
-                            "servingOptionsBox"
-                        ).style.display =
-                            "block";
-
-                    }
-
-                    else if (
-                        selectedCategory ===
-                        "food"
-                    ) {
-
-                        getElement(
-                            "formTitle"
-                        ).textContent =
-                            "Add Food Item";
-
-
-                        getElement(
-                            "servingOptionsBox"
-                        ).style.display =
-                            "none";
-
-                    }
-
-                    else {
-
-                        getElement(
-                            "formTitle"
-                        ).textContent =
-                            "Add Dish";
-
-
-                        getElement(
-                            "servingOptionsBox"
-                        ).style.display =
-                            "none";
-
-                    }
-
-                }
+    document
+        .querySelectorAll(".category-btn")
+        .forEach(button => {
+            button.classList.toggle(
+                "active",
+                button.dataset.category === selectedCategory
             );
+        });
 
+    const foodForm = getElement("foodForm");
+    const dishBuilder = getElement("dishBuilderCard");
+    const servingBox = getElement("servingOptionsBox");
+    const formTitle = getElement("formTitle");
+
+    if (selectedCategory === "dish") {
+        foodForm.style.display = "none";
+        dishBuilder.style.display = "block";
+        renderDishIngredients();
+        calculateDishNutrition();
+        return;
+    }
+
+    foodForm.style.display = "block";
+    dishBuilder.style.display = "none";
+
+    if (selectedCategory === "protein") {
+        formTitle.textContent = "Add Protein Powder";
+        servingBox.style.display = "block";
+    } else {
+        formTitle.textContent = "Add Food Item";
+        servingBox.style.display = "none";
+    }
+}
+
+document
+    .querySelectorAll(".category-btn")
+    .forEach(button => {
+        button.addEventListener("click", function () {
+            selectedCategory = button.dataset.category;
+            editingFoodId = null;
+            updateFoodCategoryUI();
+            renderFoodList();
+        });
+    });
+
+let editingDishId = null;
+let dishIngredients = [];
+
+function getDishFoodItems() {
+    return foods.filter(food => food.category === "food");
+}
+
+function addDishIngredient(data = null) {
+    const availableFoods = getDishFoodItems();
+    if (availableFoods.length === 0) {
+        getElement("dishEmptyFoodMessage").style.display = "block";
+        return;
+    }
+
+    getElement("dishEmptyFoodMessage").style.display = "none";
+
+    dishIngredients.push({
+        foodName: data?.foodName || "",
+        grams: Number(data?.grams) || 0
+    });
+
+    renderDishIngredients();
+    calculateDishNutrition();
+}
+
+function renderDishIngredients() {
+    const container = getElement("dishIngredients");
+    if (!container) return;
+
+    container.innerHTML = "";
+    const availableFoods = getDishFoodItems();
+
+    if (availableFoods.length === 0) {
+        getElement("dishEmptyFoodMessage").style.display = "block";
+        return;
+    }
+
+    getElement("dishEmptyFoodMessage").style.display = "none";
+
+    dishIngredients.forEach((ingredient, index) => {
+        const row = document.createElement("div");
+        row.className = "dish-ingredient-row";
+
+        const search = document.createElement("input");
+        search.type = "search";
+        search.className = "dish-food-search";
+        search.placeholder = "Search food...";
+        search.value = ingredient.foodName;
+
+        const select = document.createElement("select");
+        select.className = "dish-food-select";
+
+        function fillOptions(filter = "") {
+            const current = ingredient.foodName;
+            const query = filter.trim().toLowerCase();
+            select.innerHTML = `<option value="">Select Food Item</option>`;
+
+            availableFoods
+                .filter(food => !query || food.name.toLowerCase().includes(query))
+                .forEach(food => {
+                    const option = document.createElement("option");
+                    option.value = food.name;
+                    option.textContent = food.name;
+                    select.appendChild(option);
+                });
+
+            select.value = current;
         }
+
+        fillOptions(search.value);
+
+        search.addEventListener("input", function () {
+            fillOptions(search.value);
+        });
+
+        search.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") event.preventDefault();
+        });
+
+        select.addEventListener("change", function () {
+            ingredient.foodName = select.value;
+            search.value = select.value;
+            calculateDishNutrition();
+        });
+
+        const quantity = document.createElement("input");
+        quantity.type = "number";
+        quantity.className = "dish-food-quantity";
+        quantity.min = "0";
+        quantity.step = "1";
+        quantity.placeholder = "Quantity (g)";
+        quantity.value = ingredient.grams || "";
+
+        quantity.addEventListener("input", function () {
+            ingredient.grams = Number(quantity.value) || 0;
+            calculateDishNutrition();
+        });
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove-btn dish-remove-btn";
+        remove.textContent = "×";
+        remove.title = "Remove food item";
+        remove.addEventListener("click", function () {
+            dishIngredients.splice(index, 1);
+            renderDishIngredients();
+            calculateDishNutrition();
+        });
+
+        row.append(search, select, quantity, remove);
+        container.appendChild(row);
+    });
+}
+
+function calculateDishNutrition() {
+    const totals = {
+        weight: 0,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fibre: 0
+    };
+
+    dishIngredients.forEach(ingredient => {
+        const food = foods.find(
+            item => item.category === "food" && item.name === ingredient.foodName
+        );
+        const grams = Number(ingredient.grams) || 0;
+        if (!food || grams <= 0) return;
+
+        const multiplier = grams / 100;
+        totals.weight += grams;
+        totals.calories += Number(food.calories || 0) * multiplier;
+        totals.protein += Number(food.protein || 0) * multiplier;
+        totals.carbs += Number(food.carbs || 0) * multiplier;
+        totals.fat += Number(food.fat || 0) * multiplier;
+        totals.fibre += Number(food.fibre || 0) * multiplier;
+    });
+
+    getElement("dishTotalWeight").textContent = totals.weight.toFixed(0);
+    getElement("dishTotalCalories").textContent = totals.calories.toFixed(0);
+    getElement("dishTotalProtein").textContent = totals.protein.toFixed(1);
+    getElement("dishTotalCarbs").textContent = totals.carbs.toFixed(1);
+    getElement("dishTotalFat").textContent = totals.fat.toFixed(1);
+    getElement("dishTotalFibre").textContent = totals.fibre.toFixed(1);
+
+    if (totals.weight > 0) {
+        const factor = 100 / totals.weight;
+        getElement("dishPer100Summary").textContent =
+            `${(totals.calories * factor).toFixed(0)} kcal · ` +
+            `${(totals.protein * factor).toFixed(1)} g protein · ` +
+            `${(totals.carbs * factor).toFixed(1)} g carbs · ` +
+            `${(totals.fat * factor).toFixed(1)} g fat · ` +
+            `${(totals.fibre * factor).toFixed(1)} g fibre`;
+    } else {
+        getElement("dishPer100Summary").textContent =
+            "0 kcal · 0 g protein · 0 g carbs · 0 g fat · 0 g fibre";
+    }
+
+    return totals;
+}
+
+function resetDishBuilder() {
+    editingDishId = null;
+    dishIngredients = [];
+    getElement("dishName").value = "";
+    getElement("dishMessage").textContent = "";
+    getElement("saveDishBtn").textContent = "SAVE DISH";
+    renderDishIngredients();
+    calculateDishNutrition();
+}
+
+getElement("addDishIngredientBtn")?.addEventListener("click", function () {
+    addDishIngredient();
+});
+
+getElement("cancelDishBtn")?.addEventListener("click", function () {
+    resetDishBuilder();
+});
+
+getElement("saveDishBtn")?.addEventListener("click", function () {
+    const name = getElement("dishName").value.trim();
+    const totals = calculateDishNutrition();
+
+    if (!name) {
+        alert("Enter a dish name.");
+        return;
+    }
+
+    const validIngredients = dishIngredients.filter(
+        item => item.foodName && Number(item.grams) > 0
     );
+
+    if (validIngredients.length === 0 || totals.weight <= 0) {
+        alert("Add at least one food item and enter its quantity.");
+        return;
+    }
+
+    const duplicate = foods.some(
+        food =>
+            food.id !== editingDishId &&
+            food.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (duplicate) {
+        alert("A food or dish with this name already exists.");
+        return;
+    }
+
+    const per100Factor = 100 / totals.weight;
+    const dishData = {
+        name,
+        category: "dish",
+        calories: totals.calories * per100Factor,
+        protein: totals.protein * per100Factor,
+        carbs: totals.carbs * per100Factor,
+        fat: totals.fat * per100Factor,
+        fibre: totals.fibre * per100Factor,
+        sugar: 0,
+        servingOptions: [],
+        servingWeight: 0,
+        totalWeight: totals.weight,
+        ingredients: validIngredients.map(item => ({ ...item }))
+    };
+
+    if (editingDishId !== null) {
+        const index = foods.findIndex(food => food.id === editingDishId);
+        if (index !== -1) {
+            foods[index] = { ...foods[index], ...dishData };
+        }
+        getElement("dishMessage").textContent = `${name} updated successfully.`;
+    } else {
+        foods.push({ id: Date.now(), ...dishData });
+        getElement("dishMessage").textContent = `${name} added successfully.`;
+    }
+
+    saveStorage();
+    renderFoodList();
+    renderMeals();
+
+    setTimeout(() => {
+        resetDishBuilder();
+        selectedCategory = "dish";
+        updateFoodCategoryUI();
+        renderFoodList();
+    }, 600);
+});
+
+function startEditingDish(food) {
+    selectedCategory = "dish";
+    editingDishId = food.id;
+    dishIngredients = (food.ingredients || []).map(item => ({
+        foodName: item.foodName,
+        grams: Number(item.grams) || 0
+    }));
+
+    updateFoodCategoryUI();
+    getElement("dishName").value = food.name;
+    getElement("saveDishBtn").textContent = "UPDATE DISH";
+    renderDishIngredients();
+    calculateDishNutrition();
+    getElement("dishBuilderCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+updateFoodCategoryUI();
 
 
 /* =========================================
@@ -2137,6 +2914,7 @@ getElement(
             "ADD TO MY FOODS";
 
 
+        updateFoodCategoryUI();
         renderFoodList();
 
         renderMeals();
@@ -2201,7 +2979,11 @@ function renderFoodList() {
         editButton.textContent = "Edit";
 
         editButton.addEventListener("click", function () {
-            startEditingFood(food);
+            if (food.category === "dish") {
+                startEditingDish(food);
+            } else {
+                startEditingFood(food);
+            }
         });
 
         const deleteButton = document.createElement("button");
@@ -2243,12 +3025,11 @@ function startEditingFood(
     food
 ) {
 
+    selectedCategory = food.category;
+    updateFoodCategoryUI();
+
     editingFoodId =
         food.id;
-
-
-    selectedCategory =
-        food.category;
 
 
     document
