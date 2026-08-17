@@ -731,24 +731,38 @@ function renderDailyTrackers() {
 }
 
 
-function trackerSucceeded(
-    date,
-    tracker
-) {
+function getFirstTrackedDate(tracker) {
+    const dates = Object.keys(trackerLogs || {})
+        .filter(date =>
+            trackerLogs[date] &&
+            typeof trackerLogs[date][tracker.key] === "boolean"
+        )
+        .sort();
 
-    if (
-        !trackerLogs[date] ||
-        typeof trackerLogs[date][tracker.key] !==
-            "boolean"
-    ) {
-        return false;
+    return dates.length ? dates[0] : null;
+}
+
+function trackerSucceeded(date, tracker) {
+    const hasEntry =
+        trackerLogs[date] &&
+        typeof trackerLogs[date][tracker.key] === "boolean";
+
+    // Sugar and Main: unchecked = success.
+    if (tracker.successValue === false) {
+        const firstTrackedDate = getFirstTrackedDate(tracker);
+
+        if (!firstTrackedDate || date < firstTrackedDate) {
+            return false;
+        }
+
+        return hasEntry
+            ? trackerLogs[date][tracker.key] === false
+            : true;
     }
 
-    return (
-        trackerLogs[date][tracker.key] ===
-        tracker.successValue
-    );
-
+    // Gym and Supplements: checked = success.
+    return hasEntry &&
+        trackerLogs[date][tracker.key] === true;
 }
 
 
@@ -848,12 +862,19 @@ function renderTrackerHeatmap(
                 trackerLogs[dateString] &&
                 typeof trackerLogs[dateString][tracker.key] === "boolean";
 
-            if (hasEntry && trackerSucceeded(dateString, tracker)) {
-                cell.classList.add("done");
-            } else if (hasEntry) {
-                cell.classList.add("failed");
-            } else if (dateString > getLocalDateString()) {
+            const todayString = getLocalDateString(today);
+            const isFuture = dateString > todayString;
+            const isSuccess = trackerSucceeded(dateString, tracker);
+            const isAvoidanceTracker = tracker.successValue === false;
+
+            if (isFuture) {
                 cell.classList.add("future");
+            } else if (isSuccess) {
+                cell.classList.add("done");
+            } else if (isAvoidanceTracker || hasEntry) {
+                cell.classList.add("failed");
+            } else {
+                cell.classList.add("failed");
             }
 
             if (week === 26) {

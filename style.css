@@ -2013,3 +2013,75 @@ body {
     }
     .habit-heatmap.centered-year-heatmap .habit-cell { width:6px; height:6px; }
 }
+
+
+/* ===== Requested final layout fixes ===== */
+.app {
+    position: relative;
+}
+
+.account-bar {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 20;
+}
+
+.logout-btn {
+    padding: 8px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #222222;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.logout-btn:hover {
+    background: #f7f9fc;
+}
+
+.habit-cell.done {
+    background: #22c55e !important;
+    opacity: 1 !important;
+}
+
+.habit-cell.failed {
+    background: #ef4444 !important;
+    opacity: 1 !important;
+}
+
+.habit-cell.future {
+    background: #e9ebef !important;
+    opacity: 1 !important;
+}
+
+.habit-cell.today-cell {
+    outline: 2px solid #1f5eff !important;
+    outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+    .date-range {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .date-range > div,
+    .date-range input[type="date"] {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .account-bar {
+        top: 8px;
+        right: 8px;
+    }
+
+    .logout-btn {
+        padding: 7px 11px;
+        font-size: 12px;
+    }
+}
