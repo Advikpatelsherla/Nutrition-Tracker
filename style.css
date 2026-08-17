@@ -2085,3 +2085,981 @@ body {
         font-size: 12px;
     }
 }
+
+/* ===== V1.1 responsive tracker + logout refinement ===== */
+
+.account-bar {
+    position: fixed !important;
+    top: 12px !important;
+    right: 12px !important;
+    z-index: 2000 !important;
+}
+
+.logout-icon-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #d1d5db;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #202124;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.logout-icon-btn:hover {
+    background: #f4f7ff;
+}
+
+.streak-item {
+    overflow: visible !important;
+}
+
+.habit-heatmap.centered-year-heatmap {
+    overflow: visible;
+    max-width: none;
+}
+
+.date-range {
+    width: 100%;
+    min-width: 0;
+}
+
+.date-range > div {
+    min-width: 0;
+}
+
+.date-range input[type="date"] {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 700px) {
+    /* 53 weeks fit in one phone-width window:
+       53*5 + 52*1 = 317px. */
+    .habit-heatmap.centered-year-heatmap {
+        grid-template-rows: repeat(7, 5px) !important;
+        grid-template-columns: repeat(53, 5px) !important;
+        grid-auto-columns: 5px !important;
+        gap: 1px !important;
+        width: 317px !important;
+        max-width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .habit-heatmap.centered-year-heatmap .habit-cell {
+        width: 5px !important;
+        height: 5px !important;
+        min-width: 5px !important;
+        min-height: 5px !important;
+        border-radius: 1px !important;
+    }
+
+    .habit-heatmap.centered-year-heatmap .habit-cell.today-cell {
+        outline-width: 1px !important;
+        outline-offset: 1px !important;
+    }
+
+    .date-range {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    .date-range > div {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .date-range input[type="date"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        font-size: 16px;
+    }
+
+    .account-bar {
+        top: 8px !important;
+        right: 8px !important;
+    }
+
+    .logout-icon-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 20px;
+    }
+}
+
+/* ===== Water ring ===== */
+.water-ring {
+    grid-column: 2;
+}
+
+.water-ring .ring-progress {
+    stroke: #2196f3;
+}
+
+.water-intake-control {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #777;
+    font-size: 11px;
+}
+
+.water-intake-control input {
+    width: 58px;
+    padding: 4px 5px;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 12px;
+}
+
+.water-intake-control > span {
+    color: #777;
+    font-size: 11px;
+}
+
+/* Keep current streak numbers visible beside each tracker title. */
+.streak-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.streak-number {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+}
+
+.streak-number span {
+    display: inline-block !important;
+    visibility: visible !important;
+    color: #202124 !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+}
+
+.streak-number small {
+    display: inline-block !important;
+    visibility: visible !important;
+    color: #777 !important;
+}
+
+@media (max-width: 700px) {
+    .ring-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .water-ring {
+        grid-column: 2 !important;
+    }
+
+    .ring-card {
+        min-width: 0;
+    }
+
+    .water-intake-control {
+        max-width: 100%;
+    }
+}
+
+/* ===== Mobile/tablet streak-number visibility ===== */
+.streak-item {
+    overflow: hidden;
+}
+
+.streak-header {
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-right: 4px !important;
+}
+
+.streak-number {
+    position: relative !important;
+    z-index: 10 !important;
+    flex: 0 0 auto !important;
+    min-width: 58px !important;
+    justify-content: flex-end !important;
+    text-align: right !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.streak-number span {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #202124 !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+}
+
+.streak-number small {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #777 !important;
+}
+
+@media (max-width: 700px) {
+    .streak-header {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+    }
+
+    .streak-number {
+        min-width: 60px !important;
+        justify-self: end !important;
+    }
+}
+
+/* ===== Water intake in Daily Trackers ===== */
+.water-daily-control {
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.water-daily-control > label {
+    font-weight: 600;
+    font-size: 13px;
+    margin-right: auto;
+}
+
+.water-daily-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.water-daily-input input {
+    width: 82px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.water-daily-input span,
+.water-daily-control small {
+    color: #777;
+    font-size: 12px;
+}
+
+/* ===== Apple-style Water over-target ring ===== */
+.ring-overflow {
+    fill: none;
+    stroke: #2196f3;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 301.593;
+    stroke-dashoffset: 301.593;
+    opacity: 0;
+    transition:
+        stroke-dashoffset 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 300ms ease;
+    filter: drop-shadow(0 0 2px rgba(33,150,243,.35));
+}
+
+@media (max-width: 700px) {
+    .water-daily-control {
+        align-items: stretch;
+    }
+
+    .water-daily-control > label {
+        width: 100%;
+        margin-right: 0;
+    }
+
+    .water-daily-input input {
+        width: 90px;
+    }
+}
+
+/* ===== V3: streak numbers — desktop + mobile ===== */
+.streak-header {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    position: relative !important;
+}
+
+.streak-header > div:first-child {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+}
+
+.streak-number {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 72px !important;
+    margin-left: auto !important;
+    justify-content: flex-end !important;
+    align-items: baseline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
+}
+
+.streak-number span {
+    display: inline-block !important;
+    color: #202124 !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+}
+
+.streak-number small {
+    display: inline-block !important;
+    color: #777 !important;
+    font-size: 12px !important;
+    visibility: visible !important;
+}
+
+/* ===== V3: Apple-inspired ring tip shadow ===== */
+.ring-tip-shadow {
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 1;
+    opacity: 0;
+    filter: drop-shadow(0 0 4px currentColor);
+    transition:
+        cx 700ms cubic-bezier(.22,.61,.36,1),
+        cy 700ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease;
+    pointer-events: none;
+}
+
+.protein-ring {
+    color: #e53935;
+}
+
+.calories-ring {
+    color: #f59e0b;
+}
+
+.fibre-ring {
+    color: #22c55e;
+}
+
+.water-ring {
+    color: #2196f3;
+}
+
+.ring-overflow {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 5;
+    stroke-linecap: round;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 3px currentColor);
+    transition:
+        stroke-dasharray 700ms ease,
+        stroke-dashoffset 700ms ease,
+        opacity 250ms ease;
+}
+
+@media (max-width: 700px) {
+    .streak-number {
+        min-width: 62px !important;
+    }
+}
+
+/* =========================================================
+   V4 — STREAK NUMBER: fixed top-right position
+   ========================================================= */
+.streak-item {
+    position: relative !important;
+}
+
+.streak-header {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    padding-right: 110px !important;
+}
+
+.streak-header > div:first-child {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+}
+
+.streak-number {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 72px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    justify-content: flex-end !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 999 !important;
+}
+
+.streak-number span {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #202124 !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+}
+
+.streak-number small {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #777 !important;
+    font-size: 12px !important;
+}
+
+@media (max-width: 700px) {
+    .streak-header {
+        padding-right: 88px !important;
+    }
+
+    .streak-number {
+        min-width: 68px !important;
+    }
+}
+
+/* =========================================================
+   V4 — REAL MULTI-LAP RINGS
+   ========================================================= */
+.ring-lap {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 0 339.292;
+    stroke-dashoffset: 0;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 2px currentColor);
+    transition:
+        stroke-dasharray 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease;
+}
+
+.ring-tip-shadow {
+    fill: currentColor;
+    stroke: none;
+    r: 6.5;
+    opacity: 0;
+    pointer-events: none;
+    filter:
+        drop-shadow(0 0 3px currentColor)
+        drop-shadow(0 0 6px currentColor);
+    transition:
+        cx 900ms cubic-bezier(.22,.61,.36,1),
+        cy 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease;
+}
+
+/* Keep each lap the same color as its ring. */
+.protein-ring,
+.protein-ring .ring-lap,
+.protein-ring .ring-tip-shadow {
+    color: #e53935;
+}
+
+.calories-ring,
+.calories-ring .ring-lap,
+.calories-ring .ring-tip-shadow {
+    color: #f59e0b;
+}
+
+.fibre-ring,
+.fibre-ring .ring-lap,
+.fibre-ring .ring-tip-shadow {
+    color: #22c55e;
+}
+
+.water-ring,
+.water-ring .ring-lap,
+.water-ring .ring-tip-shadow {
+    color: #2196f3;
+}
+
+/* V4 final overrides — these intentionally come last. */
+.progress-ring {
+    transform: rotate(-90deg);
+    overflow: visible;
+}
+
+.ring-lap {
+    stroke: currentColor !important;
+}
+
+.ring-tip-shadow {
+    fill: currentColor !important;
+}
+
+.streak-item .streak-header .streak-number {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 9999 !important;
+}
+
+/* ============================================================
+   FINAL STREAK FIX
+   The streak number is independent of the heatmap width.
+   ============================================================ */
+
+.streak-item {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.streak-header {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    padding: 0 120px 0 0 !important;
+    overflow: visible !important;
+}
+
+.streak-header > div:first-child {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+.streak-number {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+    height: 36px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    z-index: 10000 !important;
+    color: #202124 !important;
+}
+
+.streak-number span {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #202124 !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+.streak-number small {
+    display: inline-block !important;
+    width: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #777 !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+@media (max-width: 700px) {
+    .streak-header {
+        padding-right: 90px !important;
+    }
+
+    .streak-number {
+        width: 78px !important;
+        min-width: 78px !important;
+        max-width: 78px !important;
+    }
+
+    .streak-number span {
+        font-size: 22px !important;
+    }
+
+    .streak-number small {
+        font-size: 11px !important;
+    }
+}
+
+/* ============================================================
+   FINAL RING STYLE
+   ============================================================ */
+
+.progress-ring {
+    overflow: visible !important;
+    transform: rotate(-90deg);
+}
+
+.ring-extra {
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 10 !important;
+    stroke-linecap: round !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition:
+        stroke-dasharray 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease !important;
+    filter: none !important;
+}
+
+.ring-tip-shadow {
+    fill: currentColor !important;
+    stroke: none !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    filter:
+        drop-shadow(0 0 3px currentColor)
+        drop-shadow(0 0 7px currentColor) !important;
+    transition:
+        cx 900ms cubic-bezier(.22,.61,.36,1),
+        cy 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease !important;
+}
+
+/*
+ * Colors.
+ * The ring-extra uses the exact same color as the normal ring.
+ */
+.protein-ring {
+    color: #e53935 !important;
+}
+
+.calories-ring {
+    color: #f59e0b !important;
+}
+
+.fibre-ring {
+    color: #22c55e !important;
+}
+
+.water-ring {
+    color: #2196f3 !important;
+}
+
+/*
+ * Do NOT put a shadow/highlight on the normal ring.
+ * The shadow exists only on the active tip.
+ */
+.ring-progress {
+    filter: none !important;
+    box-shadow: none !important;
+}
+
+/* ============================================================
+   FINAL STABLE FIX
+   ============================================================ */
+
+/* Streak number: always reserve its own visible space. */
+.streak-item {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.streak-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
+.streak-header > div:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.streak-header > .streak-number {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    display: flex !important;
+    flex: 0 0 78px !important;
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+    height: auto !important;
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+    justify-content: flex-end !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    z-index: 10000 !important;
+    white-space: nowrap !important;
+}
+
+.streak-header > .streak-number span {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #202124 !important;
+    font-size: 25px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+.streak-header > .streak-number small {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #777 !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+/* Ring layers. */
+.ring-progress {
+    fill: none !important;
+    stroke-linecap: round !important;
+    filter: none !important;
+    transition:
+        stroke 300ms ease,
+        stroke-width 300ms ease,
+        stroke-dashoffset 900ms cubic-bezier(.22,.61,.36,1) !important;
+}
+
+.ring-extra {
+    fill: none !important;
+    stroke-linecap: round !important;
+    pointer-events: none !important;
+    filter: none !important;
+    transition:
+        stroke 300ms ease,
+        stroke-width 300ms ease,
+        stroke-dasharray 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease !important;
+}
+
+.ring-tip-shadow {
+    pointer-events: none !important;
+    stroke: none !important;
+    filter:
+        drop-shadow(0 0 3px currentColor)
+        drop-shadow(0 0 6px currentColor) !important;
+    transition:
+        cx 900ms cubic-bezier(.22,.61,.36,1),
+        cy 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease !important;
+}
+
+@media (max-width: 700px) {
+    .streak-header > .streak-number {
+        flex-basis: 70px !important;
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+    }
+
+    .streak-header > .streak-number span {
+        font-size: 21px !important;
+    }
+
+    .streak-header > .streak-number small {
+        font-size: 10px !important;
+    }
+}
+
+/* ============================================================
+   FINAL RING OVERLAY FIX
+   The extra lap is controlled by updateRings().
+   ============================================================ */
+.ring-extra {
+    fill: none !important;
+    stroke-linecap: round !important;
+    pointer-events: none !important;
+    filter: none !important;
+    /* JS sets stroke, width, dasharray and opacity with !important. */
+}
+
+/* ============================================================
+   MULTI-LAP RING EFFECT
+   Older completed laps become lighter.
+   The newest lap is darker and slightly thicker.
+   ============================================================ */
+
+.ring-progress,
+.ring-extra {
+    fill: none !important;
+    stroke-linecap: round !important;
+    pointer-events: none !important;
+    vector-effect: non-scaling-stroke !important;
+    transition:
+        stroke 300ms ease,
+        stroke-width 300ms ease,
+        stroke-dasharray 900ms cubic-bezier(.22,.61,.36,1),
+        stroke-dashoffset 900ms cubic-bezier(.22,.61,.36,1),
+        opacity 250ms ease !important;
+}
+
+.ring-progress {
+    filter: none !important;
+}
+
+.ring-extra {
+    filter:
+        drop-shadow(0 1px 2px currentColor) !important;
+}
+
+.ring-tip-shadow {
+    pointer-events: none !important;
+    stroke: none !important;
+    filter:
+        drop-shadow(0 0 3px currentColor)
+        drop-shadow(0 0 6px currentColor) !important;
+}
+
+/* ============================================================
+   FINAL RING VISUAL RULES
+   ============================================================ */
+
+.ring-progress,
+.ring-extra {
+    fill: none !important;
+    stroke-linecap: round !important;
+    pointer-events: none !important;
+    filter: none !important;
+    transition:
+        stroke 250ms ease,
+        stroke-width 250ms ease,
+        stroke-dasharray 850ms cubic-bezier(.22,.61,.36,1),
+        opacity 200ms ease !important;
+}
+
+/*
+ * Absolutely no blur/glow on the colored ring paths.
+ * The only shadow in the ring system is the small black tip shadow.
+ */
+.ring-progress {
+    filter: none !important;
+}
+
+.ring-extra {
+    filter: none !important;
+}
+
+.ring-tip-shadow {
+    fill: #111111 !important;
+    stroke: none !important;
+    pointer-events: none !important;
+    filter:
+        drop-shadow(0 1px 2px rgba(0,0,0,0.45)) !important;
+    transition:
+        cx 850ms cubic-bezier(.22,.61,.36,1),
+        cy 850ms cubic-bezier(.22,.61,.36,1),
+        opacity 200ms ease !important;
+}
+
+/* ============================================================
+   FINAL RING DESIGN — BASE + CURRENT OVERLAY
+   ============================================================ */
+
+.ring-progress,
+.ring-extra {
+    fill: none !important;
+    stroke-linecap: round !important;
+    pointer-events: none !important;
+    filter: none !important;
+    vector-effect: non-scaling-stroke !important;
+    transition:
+        stroke 250ms ease,
+        stroke-width 250ms ease,
+        stroke-dasharray 800ms cubic-bezier(.22,.61,.36,1),
+        stroke-dashoffset 800ms cubic-bezier(.22,.61,.36,1),
+        opacity 180ms ease !important;
+}
+
+/* No shadow or blur anywhere on the colored ring path. */
+.ring-progress {
+    filter: none !important;
+}
+
+.ring-extra {
+    filter: none !important;
+}
+
+/*
+ * ONLY the active second-lap endpoint gets the small black shadow.
+ */
+.ring-tip-shadow {
+    fill: #111111 !important;
+    stroke: none !important;
+    pointer-events: none !important;
+    filter:
+        drop-shadow(0 1px 2px rgba(0,0,0,0.45)) !important;
+}
+
+/* FINAL: no black dots / no endpoint shadow. */
+.ring-progress,
+.ring-extra,
+.ring-lap,
+.ring-tip-shadow {
+    filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+.ring-tip-shadow {
+    display: none !important;
+    opacity: 0 !important;
+}

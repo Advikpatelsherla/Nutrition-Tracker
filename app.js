@@ -20,6 +20,9 @@ const TRACKER_STORAGE =
 const TARGET_STORAGE =
     "nutritionTrackerTargets";
 
+const WATER_STORAGE =
+    "nutritionTrackerWater";
+
 const SAVED_DATES_STORAGE =
     "nutritionTrackerSavedDates";
 
@@ -73,6 +76,13 @@ let trackerLogs =
         )
     ) || {};
 
+let waterLogs =
+    JSON.parse(
+        localStorage.getItem(
+            WATER_STORAGE
+        )
+    ) || {};
+
 let targets =
     JSON.parse(
         localStorage.getItem(
@@ -81,7 +91,8 @@ let targets =
     ) || {
         protein: 120,
         calories: 1200,
-        fibre: 30
+        fibre: 30,
+        water: 3
     };
 
 
@@ -167,6 +178,11 @@ async function saveStorage() {
         JSON.stringify(weightLogs)
     );
 
+    localStorage.setItem(
+        WATER_STORAGE,
+        JSON.stringify(waterLogs)
+    );
+
 
     // Also save the same data to Firestore.
     if (
@@ -199,6 +215,7 @@ async function saveStorage() {
                 supplementLogs: supplementLogs,
                 weightLogs: weightLogs,
                 trackerLogs: trackerLogs,
+                waterLogs: waterLogs,
                 targets: targets,
                 updatedAt: new Date().toISOString()
             }
@@ -343,6 +360,17 @@ async function loadDataFromFirestore() {
             }
 
             if (
+                data.waterLogs &&
+                typeof data.waterLogs === "object"
+            ) {
+                waterLogs = data.waterLogs;
+                localStorage.setItem(
+                    WATER_STORAGE,
+                    JSON.stringify(waterLogs)
+                );
+            }
+
+            if (
                 data.targets &&
                 typeof data.targets === "object"
             ) {
@@ -350,7 +378,8 @@ async function loadDataFromFirestore() {
                 targets = {
                     protein: Number(data.targets.protein) || 120,
                     calories: Number(data.targets.calories) || 1200,
-                    fibre: Number(data.targets.fibre) || 30
+                    fibre: Number(data.targets.fibre) || 30,
+                    water: Number(data.targets.water) || 3
                 };
 
                 localStorage.setItem(
@@ -382,7 +411,8 @@ async function loadDataFromFirestore() {
                     supplementLogs
                 ).length > 0 ||
                 weightLogs.length > 0 ||
-                Object.keys(trackerLogs).length > 0;
+                Object.keys(trackerLogs).length > 0 ||
+                Object.keys(waterLogs).length > 0;
 
             if (hasLocalData) {
 
@@ -398,6 +428,8 @@ async function loadDataFromFirestore() {
                             weightLogs,
                         trackerLogs:
                             trackerLogs,
+                        waterLogs:
+                            waterLogs,
                         targets:
                             targets,
                         updatedAt:
@@ -449,6 +481,7 @@ async function initializeAppData() {
 
     renderDailyTrackers();
 
+    loadWaterIntake();
     calculateTotals();
 
     renderHistory();
@@ -541,6 +574,13 @@ function saveTargets() {
             ).value
         ) || 30;
 
+    targets.water =
+        Number(
+            getElement(
+                "waterTarget"
+            ).value
+        ) || 3;
+
     localStorage.setItem(
         TARGET_STORAGE,
         JSON.stringify(targets)
@@ -582,8 +622,61 @@ function loadTargetInputs() {
             targets.fibre;
     }
 
+    if (
+        getElement("waterTarget")
+    ) {
+        getElement(
+            "waterTarget"
+        ).value =
+            targets.water;
+    }
+
 }
 
+
+
+/* =========================================
+   WATER INTAKE
+========================================= */
+
+function getWaterDate() {
+    return getElement("logDate")?.value || getLocalDateString();
+}
+
+function getWaterIntake(date = getWaterDate()) {
+    return Number(waterLogs[date]) || 0;
+}
+
+function saveWaterIntake() {
+    const input = getElement("waterIntake");
+    if (!input) return;
+
+    const date = getWaterDate();
+    const value = Math.max(0, Number(input.value) || 0);
+
+    waterLogs[date] = value;
+
+    if (value > 0 && !savedDates.includes(date)) {
+        savedDates.push(date);
+        savedDates.sort();
+    }
+
+    saveStorage();
+    updateRings();
+    renderHistory();
+}
+
+function loadWaterIntake() {
+    const input = getElement("waterIntake");
+    if (input) {
+        input.value = getWaterIntake().toFixed(1);
+    }
+
+    const target = getElement("dailyWaterTarget");
+    if (target) {
+        target.textContent = Number(targets.water || 3);
+    }
+}
 
 /* =========================================
    DAILY HABIT TRACKERS
@@ -901,16 +994,107 @@ function renderProgressTrackers() {
     TRACKERS.forEach(
         tracker => {
 
-            renderTrackerHeatmap(
-                tracker,
-                getElement(
-                    `${tracker.key}TrackerGrid`
-                ),
-                getElement(
-                    `${tracker.key}Streak`
-                )
+            const streakElement = getElement(
+                `${tracker.key}Streak`
             );
 
+            if (streakElement) {
+                const streak = getTrackerStreak(tracker);
+
+                streakElement.textContent =
+                    String(streak);
+
+                // Keep both the number AND its parent container
+                // visible on desktop, full-screen and mobile.
+                streakElement.hidden = false;
+                streakElement.style.display =
+                    "inline-block";
+                streakElement.style.visibility =
+                    "visible";
+                streakElement.style.opacity =
+                    "1";
+                streakElement.style.position =
+                    "relative";
+                streakElement.style.zIndex =
+                    "10000";
+
+                const streakBox =
+                    streakElement.parentElement;
+
+                if (streakBox) {
+                    streakBox.hidden = false;
+                    streakBox.style.setProperty(
+                        "display",
+                        "flex",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "visibility",
+                        "visible",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "opacity",
+                        "1",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "position",
+                        "relative",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "flex",
+                        "0 0 auto",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "min-width",
+                        "78px",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "margin-left",
+                        "auto",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "justify-content",
+                        "flex-end",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "align-items",
+                        "baseline",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "gap",
+                        "4px",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "white-space",
+                        "nowrap",
+                        "important"
+                    );
+                    streakBox.style.setProperty(
+                        "z-index",
+                        "10000",
+                        "important"
+                    );
+                }
+            }
+
+            const grid = getElement(
+                `${tracker.key}TrackerGrid`
+            );
+
+            renderTrackerHeatmap(
+                tracker,
+                grid,
+                streakElement
+            );
         }
     );
 
@@ -921,109 +1105,529 @@ function renderProgressTrackers() {
    NUTRITION RINGS
 ========================================= */
 
+
+function ringHexToRgb(hex) {
+    const value = hex.replace("#", "");
+    return {
+        r: parseInt(value.substring(0, 2), 16),
+        g: parseInt(value.substring(2, 4), 16),
+        b: parseInt(value.substring(4, 6), 16)
+    };
+}
+
+function ringRgbToHex(r, g, b) {
+    return "#" + [r, g, b]
+        .map(v =>
+            Math.max(0, Math.min(255, Math.round(v)))
+                .toString(16)
+                .padStart(2, "0")
+        )
+        .join("");
+}
+
+function ringLighten(hex, amount) {
+    const rgb = ringHexToRgb(hex);
+
+    return ringRgbToHex(
+        rgb.r + (255 - rgb.r) * amount,
+        rgb.g + (255 - rgb.g) * amount,
+        rgb.b + (255 - rgb.b) * amount
+    );
+}
+
+function ensureRingExtraLayers(key, requiredLaps) {
+
+    const progress =
+        getElement(`${key}RingProgress`);
+
+    if (!progress) {
+        return [];
+    }
+
+    const svg =
+        progress.closest("svg");
+
+    if (!svg) {
+        return [];
+    }
+
+    const layers = [];
+
+    /*
+     * Ring #1 is the existing RingProgress.
+     * Ring #2 already exists as RingExtra.
+     * Additional rings are created only when needed.
+     */
+    let second =
+        getElement(`${key}RingExtra`);
+
+    if (!second) {
+        second =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "circle"
+            );
+
+        second.id =
+            `${key}RingExtra`;
+
+        second.className.baseVal =
+            "ring-extra ring-lap";
+
+        second.setAttribute("cx", "70");
+        second.setAttribute("cy", "70");
+        second.setAttribute("r", "54");
+
+        svg.insertBefore(
+            second,
+            getElement(`${key}RingTipShadow`)
+        );
+    }
+
+    second.classList.add("ring-lap");
+    layers.push(second);
+
+    for (
+        let lap = 3;
+        lap <= requiredLaps;
+        lap++
+    ) {
+
+        let element =
+            getElement(`${key}RingLap${lap}`);
+
+        if (!element) {
+
+            element =
+                document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "circle"
+                );
+
+            element.id =
+                `${key}RingLap${lap}`;
+
+            element.classList.add(
+                "ring-extra",
+                "ring-lap"
+            );
+
+            element.setAttribute("cx", "70");
+            element.setAttribute("cy", "70");
+            element.setAttribute("r", "54");
+
+            svg.insertBefore(
+                element,
+                getElement(`${key}RingTipShadow`)
+            );
+        }
+
+        layers.push(element);
+    }
+
+    return layers;
+}
+
 function updateRings(
     suppliedTotal = null
 ) {
-
     const total =
-        suppliedTotal || calculateCurrentFoodTotal();
+        suppliedTotal ||
+        calculateCurrentFoodTotal();
 
     const ringData = [
         {
             key: "protein",
-            value: total.protein,
-            target: Number(
-                targets.protein
-            ) || 120
+            value: Number(total.protein) || 0,
+            target: Number(targets.protein) || 120,
+            color: "#e53935"
         },
         {
             key: "calories",
-            value: total.calories,
-            target: Number(
-                targets.calories
-            ) || 1200
+            value: Number(total.calories) || 0,
+            target: Number(targets.calories) || 1200,
+            color: "#f59e0b"
         },
         {
             key: "fibre",
-            value: total.fibre,
-            target: Number(
-                targets.fibre
-            ) || 30
+            value: Number(total.fibre) || 0,
+            target: Number(targets.fibre) || 30,
+            color: "#22c55e"
+        },
+        {
+            key: "water",
+            value: Number(getWaterIntake()) || 0,
+            target: Number(targets.water) || 3,
+            color: "#2196f3"
         }
     ];
 
-    ringData.forEach(
-        item => {
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius;
 
-            const circle =
-                getElement(
-                    `${item.key}RingProgress`
-                );
+    const lightenColor = (hex, amount) => {
+        const n = hex.replace("#", "");
+        const r = parseInt(n.slice(0, 2), 16);
+        const g = parseInt(n.slice(2, 4), 16);
+        const b = parseInt(n.slice(4, 6), 16);
 
-            const value =
-                getElement(
-                    `${item.key}RingValue`
-                );
+        return "#" + [r, g, b].map(v =>
+            Math.round(v + (255 - v) * amount)
+                .toString(16)
+                .padStart(2, "0")
+        ).join("");
+    };
 
-            const target =
-                getElement(
-                    `${item.key}RingTarget`
-                );
+    ringData.forEach(item => {
+        const baseRing =
+            getElement(`${item.key}RingProgress`);
 
-            if (
-                !circle ||
-                !value ||
-                !target
-            ) {
-                return;
-            }
+        const activeRing =
+            getElement(`${item.key}RingExtra`);
 
-            const radius =
-                Number(
-                    circle.getAttribute(
-                        "r"
-                    )
-                );
+        const tip =
+            getElement(`${item.key}RingTipShadow`);
 
-            const circumference =
-                2 *
-                Math.PI *
-                radius;
+        const value =
+            getElement(`${item.key}RingValue`);
 
-            const percent =
-                Math.min(
-                    Math.max(
-                        item.value /
-                        item.target,
-                        0
-                    ),
-                    1
-                );
+        const target =
+            getElement(`${item.key}RingTarget`);
 
-            circle.style.strokeDasharray =
-                circumference;
-
-            circle.style.strokeDashoffset =
-                circumference *
-                (1 - percent);
-
-            value.textContent =
-                item.key === "calories"
-                    ? Math.round(
-                        item.value
-                    )
-                    : item.value.toFixed(
-                        1
-                    );
-
-            target.textContent =
-                item.target;
-
+        if (
+            !baseRing ||
+            !activeRing ||
+            !tip ||
+            !value ||
+            !target
+        ) {
+            return;
         }
-    );
 
+        const safeTarget =
+            item.target > 0 ? item.target : 1;
+
+        const ratio =
+            Math.max(item.value / safeTarget, 0);
+
+        /*
+         * EXACT MODEL:
+         *
+         * 0-100%
+         *   One dark base ring.
+         *   No shadow.
+         *
+         * 101-199%
+         *   The completed first 100% becomes one shade lighter.
+         *   The amount above 100% becomes a new dark, thicker ring.
+         *   Example 110% = light 100% + dark 10%.
+         *
+         * 200%
+         *   The full 200% is represented by one lighter completed
+         *   ring. No active second-lap tip because there is no
+         *   percentage above the target at this exact point.
+         *
+         * 201-299%
+         *   The completed 200% becomes one shade lighter.
+         *   A new dark third lap starts at the percentage above 200%.
+         *
+         * 300%
+         *   Completed 300% is again the lighter base ring.
+         *
+         * 301%+
+         *   A new dark fourth lap starts.
+         *
+         * The visual is therefore always:
+         *
+         *   LIGHT COMPLETED BASE
+         *              +
+         *   DARK CURRENT OVERLAY
+         *
+         * with the current overlay exactly 1px thicker.
+         */
+
+        const wholeTargets =
+            Math.floor(ratio);
+
+        const remainder =
+            ratio - wholeTargets;
+
+        const isOverTarget =
+            ratio > 1;
+
+        /*
+         * At 100% exactly:
+         * keep the original base color.
+         *
+         * Once anything above 100% exists:
+         * completed portion becomes one shade lighter.
+         *
+         * The same happens after every additional full target.
+         */
+        const baseIsCompleted =
+            ratio >= 1;
+
+        const baseColor =
+            baseIsCompleted
+                ? lightenColor(
+                    item.color,
+                    0.30
+                )
+                : item.color;
+
+        baseRing.style.setProperty(
+            "stroke",
+            baseColor,
+            "important"
+        );
+
+        baseRing.style.setProperty(
+            "stroke-width",
+            "10px",
+            "important"
+        );
+
+        baseRing.style.setProperty(
+            "filter",
+            "none",
+            "important"
+        );
+
+        /*
+         * Base ring is always a COMPLETE circle once the first
+         * target is reached. Before that it follows the first
+         * target percentage.
+         */
+        const baseProgress =
+            Math.min(ratio, 1);
+
+        baseRing.style.setProperty(
+            "stroke-dasharray",
+            circumference,
+            "important"
+        );
+
+        baseRing.style.setProperty(
+            "stroke-dashoffset",
+            circumference *
+                (1 - baseProgress),
+            "important"
+        );
+
+        /*
+         * Current dark overlay:
+         *
+         * Only exists when the user is ABOVE an exact multiple
+         * of the target.
+         *
+         * 101% -> 1%
+         * 110% -> 10%
+         * 120% -> 20%
+         * 201% -> 1%
+         * 220% -> 20%
+         * 301% -> 1%
+         */
+        let overlayProgress = 0;
+
+        if (ratio > 1) {
+            overlayProgress =
+                remainder > 0
+                    ? remainder
+                    : 0;
+        }
+
+        /*
+         * Special case before 100%:
+         * the base ring itself handles the progress.
+         */
+        if (ratio <= 1) {
+            activeRing.style.setProperty(
+                "opacity",
+                "0",
+                "important"
+            );
+
+            tip.style.setProperty(
+                "opacity",
+                "0",
+                "important"
+            );
+        } else if (overlayProgress > 0) {
+
+            /*
+             * The overlay ALWAYS starts from the top and uses the
+             * original dark Apple-inspired base color.
+             */
+            activeRing.style.setProperty(
+                "stroke",
+                item.color,
+                "important"
+            );
+
+            activeRing.style.setProperty(
+                "stroke-width",
+                "11px",
+                "important"
+            );
+
+            activeRing.style.setProperty(
+                "stroke-dasharray",
+                `${circumference * overlayProgress} ${circumference}`,
+                "important"
+            );
+
+            activeRing.style.setProperty(
+                "stroke-dashoffset",
+                "0",
+                "important"
+            );
+
+            activeRing.style.setProperty(
+                "opacity",
+                "1",
+                "important"
+            );
+
+            /*
+             * NO blur, NO glow, NO colored shadow on the ring path.
+             */
+            activeRing.style.setProperty(
+                "filter",
+                "none",
+                "important"
+            );
+
+            /*
+             * BLACK TIP SHADOW ONLY.
+             *
+             * It is deliberately a small black translucent circle,
+             * with a tiny black drop-shadow. Nothing else is blurred.
+             */
+            const angle =
+                (
+                    -90 +
+                    overlayProgress * 360
+                ) *
+                Math.PI / 180;
+
+            const x =
+                70 +
+                radius * Math.cos(angle);
+
+            const y =
+                70 +
+                radius * Math.sin(angle);
+
+            tip.setAttribute(
+                "cx",
+                x.toFixed(2)
+            );
+
+            tip.setAttribute(
+                "cy",
+                y.toFixed(2)
+            );
+
+            tip.style.setProperty(
+                "fill",
+                "#111111",
+                "important"
+            );
+
+            tip.style.setProperty(
+                "filter",
+                "drop-shadow(0 1px 2px rgba(0,0,0,0.45))",
+                "important"
+            );
+
+            tip.style.setProperty(
+                "opacity",
+                "0.78",
+                "important"
+            );
+        } else {
+
+            /*
+             * Exactly 200%, 300%, etc.
+             * Completed base ring is visible in its lighter shade,
+             * but no new dark overlay exists until 201%, 301%, etc.
+             */
+            activeRing.style.setProperty(
+                "opacity",
+                "0",
+                "important"
+            );
+
+            tip.style.setProperty(
+                "opacity",
+                "0",
+                "important"
+            );
+        }
+
+        /*
+         * Hide any dynamically-created old lap elements from
+         * previous versions. We deliberately use ONLY the base
+         * ring + one active overlay now.
+         */
+        const svg =
+            baseRing.closest("svg");
+
+        if (svg) {
+            svg.querySelectorAll(
+                ".ring-extra"
+            ).forEach(layer => {
+
+                if (
+                    layer !== activeRing
+                ) {
+                    layer.style.setProperty(
+                        "opacity",
+                        "0",
+                        "important"
+                    );
+                }
+            });
+        }
+
+
+        const tipElement =
+            getElement(`${item.key}RingTipShadow`);
+
+        if (tipElement) {
+            tipElement.style.setProperty(
+                "opacity",
+                "0",
+                "important"
+            );
+            tipElement.style.setProperty(
+                "display",
+                "none",
+                "important"
+            );
+        }
+
+        value.textContent =
+            item.key === "calories"
+                ? Math.round(item.value)
+                : item.value.toFixed(1);
+
+        target.textContent =
+            item.target;
+
+        if (item.key === "water") {
+            const dailyTarget =
+                getElement(
+                    "dailyWaterTarget"
+                );
+
+            if (dailyTarget) {
+                dailyTarget.textContent =
+                    item.target;
+            }
+        }
+    });
 }
-
 
 function calculateCurrentFoodTotal() {
 
@@ -1170,6 +1774,12 @@ document
     });
 
 
+
+getElement("waterIntake")?.addEventListener(
+    "change",
+    saveWaterIntake
+);
+
 /* =========================================
    TARGET EDITING
 ========================================= */
@@ -1177,7 +1787,8 @@ document
 [
     "proteinTarget",
     "calorieTarget",
-    "fibreTarget"
+    "fibreTarget",
+    "waterTarget"
 ].forEach(
     id => {
 
@@ -1996,6 +2607,7 @@ getElement(
 
         calculateTotals();
 
+        loadWaterIntake();
         renderProgressTrackers();
 
         updateRings();
@@ -2124,6 +2736,7 @@ All food entries and tracker values for this date will be reset.`
 
     delete trackerLogs[date];
     delete supplementLogs[date];
+    delete waterLogs[date];
 
     saveStorage();
 
