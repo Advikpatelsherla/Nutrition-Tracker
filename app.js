@@ -105,34 +105,248 @@ function getElement(id) {
 }
 
 
-function saveStorage() {
+async function saveStorage() {
 
+    // Always keep the local copy.
     localStorage.setItem(
         FOOD_STORAGE,
         JSON.stringify(foods)
     );
-
 
     localStorage.setItem(
         LOG_STORAGE,
         JSON.stringify(logs)
     );
 
-
     localStorage.setItem(
         SUPPLEMENT_STORAGE,
-        JSON.stringify(
-            supplementLogs
-        )
+        JSON.stringify(supplementLogs)
     );
-
 
     localStorage.setItem(
         WEIGHT_STORAGE,
-        JSON.stringify(
-            weightLogs
-        )
+        JSON.stringify(weightLogs)
     );
+
+
+    // Also save the same data to Firestore.
+    if (
+        !window.firebaseDB ||
+        !window.firebaseFirestore
+    ) {
+        console.warn(
+            "Firestore is not available. Local data was saved."
+        );
+        return;
+    }
+
+    try {
+
+        const {
+            doc,
+            setDoc
+        } = window.firebaseFirestore;
+
+        await setDoc(
+            doc(
+                window.firebaseDB,
+                "nutritionTracker",
+                "data"
+            ),
+            {
+                foods: foods,
+                logs: logs,
+                supplementLogs: supplementLogs,
+                weightLogs: weightLogs,
+                updatedAt: new Date().toISOString()
+            }
+        );
+
+        console.log(
+            "All nutrition data saved to Firestore."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Firestore save failed. Local data is still safe:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================
+   FIRESTORE SYNC
+========================================= */
+
+async function loadDataFromFirestore() {
+
+    if (
+        !window.firebaseDB ||
+        !window.firebaseFirestore
+    ) {
+        console.warn(
+            "Firestore is not available. Using local data."
+        );
+        return;
+    }
+
+    try {
+
+        const {
+            doc,
+            getDoc,
+            setDoc
+        } = window.firebaseFirestore;
+
+        const dataRef = doc(
+            window.firebaseDB,
+            "nutritionTracker",
+            "data"
+        );
+
+        const snapshot = await getDoc(
+            dataRef
+        );
+
+        if (snapshot.exists()) {
+
+            const data = snapshot.data();
+
+            if (Array.isArray(data.foods)) {
+
+                foods = data.foods;
+
+                localStorage.setItem(
+                    FOOD_STORAGE,
+                    JSON.stringify(foods)
+                );
+
+            }
+
+            if (Array.isArray(data.logs)) {
+
+                logs = data.logs;
+
+                localStorage.setItem(
+                    LOG_STORAGE,
+                    JSON.stringify(logs)
+                );
+
+            }
+
+            if (
+                data.supplementLogs &&
+                typeof data.supplementLogs === "object"
+            ) {
+
+                supplementLogs =
+                    data.supplementLogs;
+
+                localStorage.setItem(
+                    SUPPLEMENT_STORAGE,
+                    JSON.stringify(
+                        supplementLogs
+                    )
+                );
+
+            }
+
+            if (Array.isArray(data.weightLogs)) {
+
+                weightLogs =
+                    data.weightLogs;
+
+                localStorage.setItem(
+                    WEIGHT_STORAGE,
+                    JSON.stringify(
+                        weightLogs
+                    )
+                );
+
+            }
+
+            console.log(
+                "Nutrition data loaded from Firestore."
+            );
+
+        } else {
+
+            /*
+             * First-time migration:
+             * If localStorage already has data,
+             * upload it to Firestore instead of
+             * replacing it with an empty database.
+             */
+
+            const hasLocalData =
+                foods.length > 0 ||
+                logs.length > 0 ||
+                Object.keys(
+                    supplementLogs
+                ).length > 0 ||
+                weightLogs.length > 0;
+
+            if (hasLocalData) {
+
+                await setDoc(
+                    dataRef,
+                    {
+                        foods: foods,
+                        logs: logs,
+                        supplementLogs:
+                            supplementLogs,
+                        weightLogs:
+                            weightLogs,
+                        updatedAt:
+                            new Date().toISOString()
+                    }
+                );
+
+                console.log(
+                    "Existing local data migrated to Firestore."
+                );
+
+            } else {
+
+                console.log(
+                    "No existing data found. Starting with empty data."
+                );
+
+            }
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Firestore load failed. Continuing with local data:",
+            error
+        );
+
+    }
+
+}
+
+
+async function initializeAppData() {
+
+    await loadDataFromFirestore();
+
+    renderMeals();
+
+    renderSupplements();
+
+    renderFoodList();
+
+    calculateTotals();
+
+    renderHistory();
+
+    renderWeightPage();
 
 }
 
@@ -3065,14 +3279,4 @@ function drawWeightChart() {
    INITIAL LOAD
 ========================================= */
 
-renderMeals();
-
-renderSupplements();
-
-renderFoodList();
-
-calculateTotals();
-
-renderHistory();
-
-renderWeightPage();
+initializeAppData();

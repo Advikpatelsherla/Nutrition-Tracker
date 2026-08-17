@@ -9,7 +9,39 @@
 
     <link rel="stylesheet" href="style.css">
 </head>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc
+    } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyA3ySa7SXS5XpfmvKPri3RhneBRJy7f46xfhw",
+        authDomain: "nutrition-tracker-advik.firebaseapp.com",
+        projectId: "nutrition-tracker-advik",
+        storageBucket: "nutrition-tracker-advik.firebasestorage.app",
+        messagingSenderId: "886123305045",
+        appId: "1:886123305045:web:8d571e6d8101244edcdc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+
+    const db = getFirestore(app);
+
+    window.firebaseDB = db;
+
+    window.firebaseFirestore = {
+        doc,
+        setDoc,
+        getDoc
+    };
+
+    console.log("Firebase connected successfully");
+</script>
 <body>
 
 <div class="app">
@@ -719,7 +751,7 @@
 
 <!-- APP -->
 
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 
 </body>
 </html>
