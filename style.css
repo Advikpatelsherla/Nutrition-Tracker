@@ -3063,3 +3063,212 @@ body {
     display: none !important;
     opacity: 0 !important;
 }
+
+/* ============================================================
+   V1.2 BACKUP / RESTORE
+   ============================================================ */
+
+.backup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.backup-box {
+    border: 1px solid #dbe3ef;
+    border-radius: 14px;
+    padding: 16px;
+    background: #fff;
+}
+
+.backup-box h3 {
+    margin: 0 0 6px;
+}
+
+.backup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.file-button {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.daily-log-history-row {
+    gap: 16px;
+}
+
+.daily-log-history-row .history-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.daily-log-history-row .history-actions button {
+    white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .backup-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .backup-actions {
+        flex-direction: column;
+    }
+
+    .backup-actions button,
+    .backup-actions .file-button {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .daily-log-history-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .daily-log-history-row .history-actions {
+        width: 100%;
+    }
+
+    .daily-log-history-row .history-actions button {
+        flex: 1 1 0;
+    }
+}
+
+/* ============================================================
+   PROGRESS RINGS — EXACT 3 + 4 LAYOUT
+   Row 1: Protein / Calories / Fibre
+   Row 2: Water / Steps / Fat / Carbohydrates
+   ============================================================ */
+
+.progress-dashboard .ring-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.progress-dashboard .ring-card {
+    min-width: 0;
+}
+
+/* First row: each ring occupies 4/12 columns. */
+.progress-dashboard .ring-card.protein-ring,
+.progress-dashboard .ring-card.calories-ring,
+.progress-dashboard .ring-card.fibre-ring {
+    grid-column: span 4;
+}
+
+/* Second row: each ring occupies exactly 3/12 columns. */
+.progress-dashboard .ring-card.secondary-ring {
+    grid-column: span 3;
+    transform: scale(0.78);
+    transform-origin: top center;
+    margin-bottom: -32px;
+}
+
+.progress-dashboard .ring-card.secondary-ring .ring-wrap {
+    max-width: 170px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.progress-dashboard .ring-card.secondary-ring .ring-center strong {
+    font-size: 1rem;
+}
+
+.progress-dashboard .ring-card.secondary-ring > strong {
+    font-size: 0.92rem;
+}
+
+.progress-dashboard .ring-card.secondary-ring small {
+    font-size: 0.76rem;
+}
+
+.progress-dashboard .water-ring .ring-progress,
+.progress-dashboard .water-ring .ring-extra {
+    stroke: #2196f3 !important;
+}
+
+.progress-dashboard .steps-ring .ring-progress,
+.progress-dashboard .steps-ring .ring-extra {
+    stroke: #8b5cf6 !important;
+}
+
+.progress-dashboard .fat-ring .ring-progress,
+.progress-dashboard .fat-ring .ring-extra {
+    stroke: #f97316 !important;
+}
+
+.progress-dashboard .carbs-ring .ring-progress,
+.progress-dashboard .carbs-ring .ring-extra {
+    stroke: #06b6d4 !important;
+}
+
+.step-daily-control {
+    margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+    .progress-dashboard .ring-grid {
+        gap: 12px;
+    }
+
+    .progress-dashboard .ring-card.secondary-ring {
+        transform: scale(0.70);
+        margin-bottom: -42px;
+    }
+}
+
+@media (max-width: 620px) {
+    .progress-dashboard .ring-grid {
+        gap: 4px;
+    }
+
+    .progress-dashboard .ring-card.secondary-ring {
+        transform: scale(0.58);
+        margin-bottom: -58px;
+    }
+
+    .progress-dashboard .ring-card.secondary-ring .ring-wrap {
+        max-width: 140px;
+    }
+
+    .progress-dashboard .ring-card.secondary-ring > strong {
+        font-size: 0.84rem;
+    }
+
+    .progress-dashboard .ring-card.secondary-ring small {
+        font-size: 0.68rem;
+    }
+}
+
+/* Selected historical date in the GitHub-style tracker grids. */
+.habit-cell.selected-date-cell {
+    position: relative;
+    outline: 2px solid #2563eb !important;
+    outline-offset: 1px;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+    z-index: 2;
+}
+
+.habit-cell.selected-date-cell::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -6px;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #2563eb;
+    pointer-events: none;
+}

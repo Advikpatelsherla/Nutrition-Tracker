@@ -8,6 +8,9 @@
     <title>Nutrition Tracker</title>
 
     <link rel="stylesheet" href="style.css">
+
+    <!-- Excel import/export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
@@ -345,6 +348,14 @@
                 </div>
                 <small>Target: <span id="dailyWaterTarget">3</span> L</small>
             </div>
+            <div class="water-daily-control step-daily-control">
+                <label for="stepCount">Step count today</label>
+                <div class="water-daily-input">
+                    <input id="stepCount" type="number" min="0" step="1" value="0" inputmode="numeric" placeholder="8000">
+                    <span>steps</span>
+                </div>
+                <small>Target: <span id="dailyStepTarget">8,000</span> steps</small>
+            </div>
         </div>
 
 <div class="card">
@@ -385,12 +396,14 @@
             <div class="progress-title-row">
                 <div>
                     <h2>Today's Progress</h2>
+                    <p id="progressDateLabel" class="muted">Today</p>
                     <p class="muted">Your nutrition targets and daily habit streaks.</p>
                 </div>
             </div>
 
             <div class="ring-grid">
 
+                <!-- FIRST ROW: 3 LARGE RINGS -->
                 <div class="ring-card protein-ring">
                     <div class="ring-wrap">
                         <svg viewBox="0 0 140 140" class="progress-ring">
@@ -442,7 +455,9 @@
                     <small><span id="fibreRingTarget">30</span> g target</small>
                 </div>
 
-                <div class="ring-card water-ring">
+                <!-- SECOND ROW: 4 SMALLER RINGS
+                     EXACT ORDER: Water / Steps / Fat / Carbohydrates -->
+                <div class="ring-card secondary-ring water-ring">
                     <div class="ring-wrap">
                         <svg viewBox="0 0 140 140" class="progress-ring">
                             <circle class="ring-track" cx="70" cy="70" r="54"></circle>
@@ -457,6 +472,54 @@
                     </div>
                     <strong>Water</strong>
                     <small><span id="waterRingTarget">3</span> L target</small>
+                </div>
+
+                <div class="ring-card secondary-ring steps-ring">
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 140 140" class="progress-ring">
+                            <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+                            <circle id="stepsRingProgress" class="ring-progress" cx="70" cy="70" r="54"></circle>
+                            <circle id="stepsRingExtra" class="ring-extra" cx="70" cy="70" r="54"></circle>
+                        </svg>
+                        <div class="ring-center">
+                            <strong id="stepsRingValue">0</strong>
+                            <span>steps</span>
+                        </div>
+                    </div>
+                    <strong>Steps</strong>
+                    <small><span id="stepsRingTarget">8,000</span> target</small>
+                </div>
+
+                <div class="ring-card secondary-ring fat-ring">
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 140 140" class="progress-ring">
+                            <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+                            <circle id="fatRingProgress" class="ring-progress" cx="70" cy="70" r="54"></circle>
+                            <circle id="fatRingExtra" class="ring-extra" cx="70" cy="70" r="54"></circle>
+                        </svg>
+                        <div class="ring-center">
+                            <strong id="fatRingValue">0.0</strong>
+                            <span>g</span>
+                        </div>
+                    </div>
+                    <strong>Fat</strong>
+                    <small><span id="fatRingTarget">60</span> g target</small>
+                </div>
+
+                <div class="ring-card secondary-ring carbs-ring">
+                    <div class="ring-wrap">
+                        <svg viewBox="0 0 140 140" class="progress-ring">
+                            <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+                            <circle id="carbsRingProgress" class="ring-progress" cx="70" cy="70" r="54"></circle>
+                            <circle id="carbsRingExtra" class="ring-extra" cx="70" cy="70" r="54"></circle>
+                        </svg>
+                        <div class="ring-center">
+                            <strong id="carbsRingValue">0.0</strong>
+                            <span>g</span>
+                        </div>
+                    </div>
+                    <strong>Carbohydrates</strong>
+                    <small><span id="carbsRingTarget">130</span> g target</small>
                 </div>
 
             </div>
@@ -485,6 +548,20 @@
                     <label>
                         Water (L)
                         <input id="waterTarget" type="number" min="0.1" step="0.1" value="3">
+                    </label>
+                    <label>
+                        Carbohydrates (g)
+                        <input id="carbsTarget" type="number" min="1" step="1" value="130">
+                    </label>
+
+                    <label>
+                        Fats (g)
+                        <input id="fatTarget" type="number" min="1" step="1" value="60">
+                    </label>
+
+                    <label>
+                        Steps
+                        <input id="stepsTarget" type="number" min="1" step="100" value="8000">
                     </label>
 
                 </div>
@@ -1175,7 +1252,58 @@
 
         </div>
 
-    </section>
+    
+        <!-- DATA BACKUP -->
+        <div class="card backup-card">
+            <h2>Backup & Restore</h2>
+            <p class="muted">
+                Keep your reusable Food Database and Personal Progress as two separate Excel backups.
+            </p>
+
+            <div class="backup-grid">
+                <div class="backup-box">
+                    <h3>Food Database</h3>
+                    <p class="muted">Foods, protein powders, dishes and dish ingredients.</p>
+
+                    <div class="backup-actions">
+                        <button id="exportFoodBtn" class="secondary-btn" type="button">
+                            EXPORT FOOD DATA
+                        </button>
+
+                        <label class="secondary-btn file-button">
+                            IMPORT FOOD DATA
+                            <input
+                                id="importFoodInput"
+                                type="file"
+                                accept=".xlsx,.xls"
+                                hidden>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="backup-box">
+                    <h3>Personal Data</h3>
+                    <p class="muted">Daily totals, trackers, weight and targets.</p>
+
+                    <div class="backup-actions">
+                        <button id="exportPersonalBtn" class="secondary-btn" type="button">
+                            EXPORT PERSONAL DATA
+                        </button>
+
+                        <label class="secondary-btn file-button">
+                            IMPORT PERSONAL DATA
+                            <input
+                                id="importPersonalInput"
+                                type="file"
+                                accept=".xlsx,.xls"
+                                hidden>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+</section>
 
 
 </div>

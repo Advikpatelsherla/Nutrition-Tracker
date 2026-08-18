@@ -23,8 +23,17 @@ const TARGET_STORAGE =
 const WATER_STORAGE =
     "nutritionTrackerWater";
 
+const STEP_STORAGE =
+    "nutritionTrackerSteps";
+
 const SAVED_DATES_STORAGE =
     "nutritionTrackerSavedDates";
+
+const DAILY_SUMMARY_STORAGE =
+    "nutritionTrackerDailySummaries";
+
+const DAILY_META_STORAGE =
+    "nutritionTrackerDailyLogMeta";
 
 
 /* =========================================
@@ -52,6 +61,20 @@ let savedDates =
             SAVED_DATES_STORAGE
         )
     ) || [...new Set(logs.map(item => item.date))];
+
+let dailySummaries =
+    JSON.parse(
+        localStorage.getItem(
+            DAILY_SUMMARY_STORAGE
+        )
+    ) || {};
+
+let dailyLogMeta =
+    JSON.parse(
+        localStorage.getItem(
+            DAILY_META_STORAGE
+        )
+    ) || {};
 
 
 let supplementLogs =
@@ -83,17 +106,29 @@ let waterLogs =
         )
     ) || {};
 
+let stepLogs =
+    JSON.parse(
+        localStorage.getItem(
+            STEP_STORAGE
+        )
+    ) || {};
+
 let targets =
     JSON.parse(
         localStorage.getItem(
             TARGET_STORAGE
         )
-    ) || {
-        protein: 120,
-        calories: 1200,
-        fibre: 30,
-        water: 3
-    };
+    ) || {};
+
+targets = {
+    protein: Number(targets.protein) || 120,
+    calories: Number(targets.calories) || 1200,
+    fibre: Number(targets.fibre) || 30,
+    water: Number(targets.water) || 3,
+    carbs: Number(targets.carbs) || 130,
+    fat: Number(targets.fat) || 60,
+    steps: Number(targets.steps) || 8000
+};
 
 
 let selectedCategory =
@@ -169,6 +204,16 @@ async function saveStorage() {
     );
 
     localStorage.setItem(
+        DAILY_SUMMARY_STORAGE,
+        JSON.stringify(dailySummaries)
+    );
+
+    localStorage.setItem(
+        DAILY_META_STORAGE,
+        JSON.stringify(dailyLogMeta)
+    );
+
+    localStorage.setItem(
         SUPPLEMENT_STORAGE,
         JSON.stringify(supplementLogs)
     );
@@ -181,6 +226,11 @@ async function saveStorage() {
     localStorage.setItem(
         WATER_STORAGE,
         JSON.stringify(waterLogs)
+    );
+
+    localStorage.setItem(
+        STEP_STORAGE,
+        JSON.stringify(stepLogs)
     );
 
 
@@ -212,10 +262,13 @@ async function saveStorage() {
                 foods: foods,
                 logs: logs,
                 savedDates: savedDates,
+                dailySummaries: dailySummaries,
+                dailyLogMeta: dailyLogMeta,
                 supplementLogs: supplementLogs,
                 weightLogs: weightLogs,
                 trackerLogs: trackerLogs,
                 waterLogs: waterLogs,
+                stepLogs: stepLogs,
                 targets: targets,
                 updatedAt: new Date().toISOString()
             }
@@ -310,6 +363,40 @@ async function loadDataFromFirestore() {
                     JSON.stringify(savedDates)
                 );
             }
+
+            if (
+                data.stepLogs &&
+                typeof data.stepLogs === "object"
+            ) {
+                stepLogs = data.stepLogs;
+                localStorage.setItem(
+                    STEP_STORAGE,
+                    JSON.stringify(stepLogs)
+                );
+            }
+
+            if (
+                data.dailySummaries &&
+                typeof data.dailySummaries === "object"
+            ) {
+                dailySummaries = data.dailySummaries;
+                localStorage.setItem(
+                    DAILY_SUMMARY_STORAGE,
+                    JSON.stringify(dailySummaries)
+                );
+            }
+
+            if (
+                data.dailyLogMeta &&
+                typeof data.dailyLogMeta === "object"
+            ) {
+                dailyLogMeta = data.dailyLogMeta;
+                localStorage.setItem(
+                    DAILY_META_STORAGE,
+                    JSON.stringify(dailyLogMeta)
+                );
+            }
+
 
             if (
                 data.supplementLogs &&
@@ -422,6 +509,8 @@ async function loadDataFromFirestore() {
                         foods: foods,
                         logs: logs,
                         savedDates: savedDates,
+                        dailySummaries: dailySummaries,
+                        dailyLogMeta: dailyLogMeta,
                         supplementLogs:
                             supplementLogs,
                         weightLogs:
@@ -467,6 +556,9 @@ async function initializeAppData() {
 
     await loadDataFromFirestore();
 
+    cleanupExpiredDailyFoodLogs();
+    saveStorage();
+
     renderMeals();
 
     renderSupplements();
@@ -495,6 +587,237 @@ async function initializeAppData() {
 
 }
 
+
+
+/* =========================================
+   DAILY SUMMARY + 24-HOUR EDIT WINDOW
+========================================= */
+
+function getDailyMeta(date) {
+    return dailyLogMeta[date] || null;
+}
+
+function getDailySummary(date) {
+    return dailySummaries[date] || null;
+}
+
+function getDailyEditDeadline(date) {
+    if (!date) return null;
+
+    const midnight = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(midnight.getTime())) return null;
+
+    midnight.setDate(midnight.getDate() + 1);
+    return midnight.getTime();
+}
+
+function isDailyLogEditable(date) {
+    return (
+        !!date &&
+        date === getLocalDateString() &&
+        savedDates.includes(date)
+    );
+}
+
+function formatDailyDeadline(date) {
+    const deadline = getDailyEditDeadline(date);
+    if (!deadline) return "";
+
+    return new Date(deadline).toLocaleString(
+        undefined,
+        {
+            dateStyle: "medium",
+            timeStyle: "short"
+        }
+    );
+}
+
+function calculateTotalForDate(date) {
+    const summary = getDailySummary(date);
+    if (summary) {
+        return {
+            calories: Number(summary.calories) || 0,
+            protein: Number(summary.protein) || 0,
+            carbs: Number(summary.carbs) || 0,
+            fat: Number(summary.fat) || 0,
+            fibre: Number(summary.fibre) || 0
+        };
+    }
+
+    const total = {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fibre: 0
+    };
+
+    logs
+        .filter(item => item.date === date)
+        .forEach(item => {
+            const nutrition = getNutrition(item.food, item.amount);
+            if (!nutrition) return;
+
+            total.calories += Number(nutrition.calories) || 0;
+            total.protein += Number(nutrition.protein) || 0;
+            total.carbs += Number(nutrition.carbs) || 0;
+            total.fat += Number(nutrition.fat) || 0;
+            total.fibre += Number(nutrition.fibre) || 0;
+        });
+
+    return total;
+}
+
+function updateDailySummaryFromCurrentDay(date) {
+    const total = calculateCurrentFoodTotal();
+
+    if (!dailySummaries[date]) {
+        dailySummaries[date] = {};
+    }
+
+    dailySummaries[date] = {
+        date,
+        calories: Number(total.calories) || 0,
+        protein: Number(total.protein) || 0,
+        carbs: Number(total.carbs) || 0,
+        fat: Number(total.fat) || 0,
+        fibre: Number(total.fibre) || 0,
+        water: Number(waterLogs[date]) || 0,
+        steps: Number(stepLogs[date]) || 0,
+        gym: trackerLogs[date]?.gym === true,
+        sugar: trackerLogs[date]?.sugar === true,
+        main: trackerLogs[date]?.main === true,
+        supplements: trackerLogs[date]?.supplements === true,
+        weight: Number(
+            weightLogs.find(item => item.date === date)?.weight
+        ) || null
+    };
+
+    if (!savedDates.includes(date)) {
+        savedDates.push(date);
+        savedDates.sort();
+    }
+}
+
+function cleanupExpiredDailyFoodLogs() {
+    const todayDate = getLocalDateString();
+
+    Object.keys(dailyLogMeta).forEach(date => {
+        if (!dailyLogMeta[date]?.savedAt) return;
+
+        /*
+         * Meal-level data belongs to the calendar day.
+         * A save at 10:00 AM remains editable until local midnight.
+         * At the next calendar day, only the compact daily summary remains.
+         */
+        const expired =
+            date < todayDate;
+
+        if (expired) {
+            logs = logs.filter(item => item.date !== date);
+
+            /*
+             * The summary remains permanently.
+             * Only the meal-level temporary data is removed.
+             */
+        }
+    });
+
+    /*
+     * Legacy data:
+     * If an older saved date has meal data but no summary yet,
+     * create its summary once before the old food entries are
+     * discarded.
+     */
+    [...savedDates].forEach(date => {
+        if (!dailySummaries[date]) {
+            const total = {
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                fibre: 0
+            };
+
+            logs
+                .filter(item => item.date === date)
+                .forEach(item => {
+                    const nutrition = getNutrition(item.food, item.amount);
+                    if (!nutrition) return;
+
+                    total.calories += Number(nutrition.calories) || 0;
+                    total.protein += Number(nutrition.protein) || 0;
+                    total.carbs += Number(nutrition.carbs) || 0;
+                    total.fat += Number(nutrition.fat) || 0;
+                    total.fibre += Number(nutrition.fibre) || 0;
+                });
+
+            dailySummaries[date] = {
+                date,
+                ...total,
+                water: Number(waterLogs[date]) || 0,
+                steps: Number(stepLogs[date]) || 0,
+                gym: trackerLogs[date]?.gym === true,
+                sugar: trackerLogs[date]?.sugar === true,
+                main: trackerLogs[date]?.main === true,
+                supplements: trackerLogs[date]?.supplements === true,
+                weight: Number(
+                    weightLogs.find(item => item.date === date)?.weight
+                ) || null
+            };
+
+            /*
+             * Existing historical dates are considered closed.
+             * Today remains editable if it was already saved.
+             */
+            if (!dailyLogMeta[date]) {
+                dailyLogMeta[date] = {
+                    savedAt:
+                        date === todayDate
+                            ? new Date().toISOString()
+                            : `${date}T00:00:00`
+                };
+            }
+        }
+    });
+}
+
+function getProgressTotals(date) {
+    return calculateTotalForDate(date);
+}
+
+function showProgressForDate(date) {
+    const targetDate = date || getLocalDateString();
+    currentProgressDate = targetDate;
+
+    const summary = getDailySummary(targetDate);
+
+    if (summary) {
+        updateRings({
+            calories: Number(summary.calories) || 0,
+            protein: Number(summary.protein) || 0,
+            carbs: Number(summary.carbs) || 0,
+            fat: Number(summary.fat) || 0,
+            fibre: Number(summary.fibre) || 0,
+            water: Number(summary.water) || 0,
+            steps: Number(summary.steps) || 0
+        });
+    } else {
+        updateRings();
+    }
+
+    renderProgressTrackers();
+
+    const label = getElement("progressDateLabel");
+    if (label) {
+        label.textContent =
+            targetDate === getLocalDateString()
+                ? `Today • ${formatDisplayDate(targetDate)}`
+                : `Progress for ${formatDisplayDate(targetDate)}`;
+    }
+}
+
+let currentProgressDate = getLocalDateString();
 
 /* =========================================
    DATE + DAILY TARGETS
@@ -539,11 +862,11 @@ getElement(
 ).value = today;
 
 if (getElement("dailyHistoryFromDate")) {
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    getElement("dailyHistoryFromDate").value = getLocalDateString(oneYearAgo);
+    getElement("dailyHistoryFromDate").value = today;
 }
-if (getElement("dailyHistoryToDate")) getElement("dailyHistoryToDate").value = today;
+if (getElement("dailyHistoryToDate")) {
+    getElement("dailyHistoryToDate").value = today;
+}
 
 
 getElement(
@@ -580,6 +903,15 @@ function saveTargets() {
                 "waterTarget"
             ).value
         ) || 3;
+
+    targets.carbs =
+        Number(getElement("carbsTarget")?.value) || 130;
+
+    targets.fat =
+        Number(getElement("fatTarget")?.value) || 60;
+
+    targets.steps =
+        Number(getElement("stepsTarget")?.value) || 8000;
 
     localStorage.setItem(
         TARGET_STORAGE,
@@ -631,6 +963,18 @@ function loadTargetInputs() {
             targets.water;
     }
 
+    if (getElement("carbsTarget")) {
+        getElement("carbsTarget").value = targets.carbs;
+    }
+
+    if (getElement("fatTarget")) {
+        getElement("fatTarget").value = targets.fat;
+    }
+
+    if (getElement("stepsTarget")) {
+        getElement("stepsTarget").value = targets.steps;
+    }
+
 }
 
 
@@ -656,6 +1000,10 @@ function saveWaterIntake() {
 
     waterLogs[date] = value;
 
+    if (dailySummaries[date]) {
+        dailySummaries[date].water = value;
+    }
+
     if (value > 0 && !savedDates.includes(date)) {
         savedDates.push(date);
         savedDates.sort();
@@ -679,6 +1027,58 @@ function loadWaterIntake() {
 }
 
 /* =========================================
+   STEP COUNT
+========================================= */
+
+function getStepDate() {
+    return getElement("logDate")?.value || getLocalDateString();
+}
+
+function getStepCount(date = getStepDate()) {
+    return Number(stepLogs[date]) || 0;
+}
+
+function saveStepCount() {
+    const input = getElement("stepCount");
+    if (!input) return;
+
+    const date = getStepDate();
+    const value = Math.max(0, Math.floor(Number(input.value) || 0));
+
+    stepLogs[date] = value;
+
+    if (dailySummaries[date]) {
+        dailySummaries[date].steps = value;
+    }
+
+    saveStorage();
+    updateRings();
+    renderHistory();
+}
+
+function loadStepCount() {
+    const input = getElement("stepCount");
+    if (input) {
+        input.value = String(getStepCount());
+    }
+
+    const target = getElement("dailyStepTarget");
+    if (target) {
+        target.textContent = Number(targets.steps || 8000).toLocaleString();
+    }
+}
+
+getElement("waterIntake")?.addEventListener(
+    "change",
+    saveWaterIntake
+);
+
+getElement("stepCount")?.addEventListener(
+    "change",
+    saveStepCount
+);
+
+/* =========================================
    DAILY HABIT TRACKERS
 ========================================= */
 
@@ -699,7 +1099,7 @@ const TRACKERS = [
         key: "main",
         name: "Main",
         successValue: false,
-        help: "Tick when your main daily goal is complete."
+        help: "Tick when your main daily goal is missed. Leave unticked when successful."
     },
     {
         key: "supplements",
@@ -733,6 +1133,10 @@ function setTrackerValue(
 
     trackerLogs[date][key] =
         value;
+
+    if (dailySummaries[date]) {
+        dailySummaries[date][key] = value;
+    }
 
     saveStorage();
 
@@ -835,45 +1239,73 @@ function getFirstTrackedDate(tracker) {
     return dates.length ? dates[0] : null;
 }
 
-function trackerSucceeded(date, tracker) {
-    const hasEntry =
-        trackerLogs[date] &&
-        typeof trackerLogs[date][tracker.key] === "boolean";
+function trackerSucceeded(
+    date,
+    tracker
+) {
+    const trackerDay =
+        trackerLogs[date] || {};
 
-    // Sugar and Main: unchecked = success.
-    if (tracker.successValue === false) {
-        const firstTrackedDate = getFirstTrackedDate(tracker);
+    const summary =
+        dailySummaries[date] || {};
 
-        if (!firstTrackedDate || date < firstTrackedDate) {
+    /*
+     * Sugar + Main:
+     *
+     * UNCHECKED = SUCCESS.
+     *
+     * If there is an explicit tracker value, use it.
+     * If there is no explicit value but the day has been saved,
+     * an unchecked Sugar/Main box is a successful day.
+     */
+    if (
+        tracker.successValue === false
+    ) {
+        const hasSavedDay =
+            savedDates.includes(date) ||
+            !!dailySummaries[date];
+
+        if (!hasSavedDay) {
             return false;
         }
 
-        return hasEntry
-            ? trackerLogs[date][tracker.key] === false
-            : true;
+        /*
+         * An explicit true means the user ticked the box:
+         * sugar was taken / Main was missed -> streak breaks.
+         */
+        return trackerDay[tracker.key] !== true &&
+            summary[tracker.key] !== true;
     }
 
-    // Gym and Supplements: checked = success.
-    return hasEntry &&
-        trackerLogs[date][tracker.key] === true;
+    /*
+     * Gym + Supplements:
+     * checked = success.
+     */
+    return (
+        trackerDay[tracker.key] === true ||
+        summary[tracker.key] === true
+    );
 }
 
 
 function getTrackerStreak(
     tracker
 ) {
-
     let streak = 0;
 
     const date =
         new Date();
 
-    while (true) {
+    date.setHours(
+        12,
+        0,
+        0,
+        0
+    );
 
+    while (true) {
         const dateString =
-            getLocalDateString(
-                date
-            );
+            getLocalDateString(date);
 
         if (
             !trackerSucceeded(
@@ -889,102 +1321,182 @@ function getTrackerStreak(
         date.setDate(
             date.getDate() - 1
         );
-
     }
 
     return streak;
-
 }
 
 
-function formatShortDate(
+function formatDisplayDate(
     dateString
 ) {
+    if (!dateString) return "";
 
     const date =
-        new Date(
-            `${dateString}T00:00:00`
-        );
+        new Date(`${dateString}T00:00:00`);
 
-    return date.toLocaleDateString(
-        undefined,
-        {
-            month: "short",
-            day: "numeric"
-        }
-    );
+    if (Number.isNaN(date.getTime())) {
+        return dateString;
+    }
 
+    return [
+        String(date.getDate()).padStart(2, "0"),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        date.getFullYear()
+    ].join("-");
+}
+
+/* Backward-compatible name. */
+function formatShortDate(dateString) {
+    return formatDisplayDate(dateString);
 }
 
 
 function renderTrackerHeatmap(
     tracker,
     grid,
-    streakElement
+    streakElement,
+    selectedDate = getLocalDateString()
 ) {
-
     if (!grid) return;
 
     grid.innerHTML = "";
-    grid.classList.add("centered-year-heatmap");
-
-    const today = new Date();
-    today.setHours(12, 0, 0, 0);
-
-    // Start on Sunday, 26 weeks before the current week.
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(
-        currentWeekStart.getDate() - currentWeekStart.getDay()
+    grid.classList.add(
+        "centered-year-heatmap"
     );
 
-    const startDate = new Date(currentWeekStart);
-    startDate.setDate(startDate.getDate() - (26 * 7));
+    const today =
+        new Date();
+
+    today.setHours(
+        12,
+        0,
+        0,
+        0
+    );
+
+    const currentWeekStart =
+        new Date(today);
+
+    currentWeekStart.setDate(
+        currentWeekStart.getDate() -
+        currentWeekStart.getDay()
+    );
+
+    const startDate =
+        new Date(currentWeekStart);
+
+    startDate.setDate(
+        startDate.getDate() -
+        (26 * 7)
+    );
 
     const totalWeeks = 53;
 
-    for (let week = 0; week < totalWeeks; week++) {
-        for (let day = 0; day < 7; day++) {
-            const cursor = new Date(startDate);
-            cursor.setDate(cursor.getDate() + (week * 7) + day);
+    for (
+        let week = 0;
+        week < totalWeeks;
+        week++
+    ) {
+        for (
+            let day = 0;
+            day < 7;
+            day++
+        ) {
+            const cursor =
+                new Date(startDate);
 
-            const dateString = getLocalDateString(cursor);
-            const cell = document.createElement("span");
-            cell.className = "habit-cell";
+            cursor.setDate(
+                cursor.getDate() +
+                (week * 7) +
+                day
+            );
 
-            const hasEntry =
-                trackerLogs[dateString] &&
-                typeof trackerLogs[dateString][tracker.key] === "boolean";
+            const dateString =
+                getLocalDateString(cursor);
 
-            const todayString = getLocalDateString(today);
-            const isFuture = dateString > todayString;
-            const isSuccess = trackerSucceeded(dateString, tracker);
-            const isAvoidanceTracker = tracker.successValue === false;
+            const cell =
+                document.createElement("span");
 
+            cell.className =
+                "habit-cell";
+
+            const todayString =
+                getLocalDateString(today);
+
+            const isFuture =
+                dateString > todayString;
+
+            const isSuccess =
+                trackerSucceeded(
+                    dateString,
+                    tracker
+                );
+
+            const isAvoidanceTracker =
+                tracker.successValue === false;
+
+            /*
+             * Sugar/Main:
+             * saved day + unchecked = DONE/GREEN.
+             *
+             * Gym/Supplements:
+             * checked = DONE/GREEN.
+             *
+             * A historical day that is not successful is RED.
+             * Future days remain gray.
+             */
             if (isFuture) {
                 cell.classList.add("future");
             } else if (isSuccess) {
                 cell.classList.add("done");
-            } else if (isAvoidanceTracker || hasEntry) {
-                cell.classList.add("failed");
             } else {
                 cell.classList.add("failed");
             }
 
             if (week === 26) {
-                cell.classList.add("current-week");
+                cell.classList.add(
+                    "current-week"
+                );
             }
 
-            if (dateString === getLocalDateString(today)) {
-                cell.classList.add("today-cell");
+            if (
+                dateString === todayString
+            ) {
+                cell.classList.add(
+                    "today-cell"
+                );
             }
 
-            cell.title = `${tracker.name} • ${formatShortDate(dateString)}`;
+            /*
+             * Historical Progress selection.
+             * The blue indicator follows the date currently opened
+             * instead of remaining fixed on today's square.
+             */
+            if (
+                dateString === selectedDate
+            ) {
+                cell.classList.add(
+                    "selected-date-cell"
+                );
+                cell.setAttribute(
+                    "aria-current",
+                    "date"
+                );
+            }
+
+            cell.title =
+                `${tracker.name} • ${formatDisplayDate(dateString)}`;
+
             grid.appendChild(cell);
         }
     }
 
     if (streakElement) {
-        streakElement.textContent = getTrackerStreak(tracker);
+        streakElement.textContent =
+            String(
+                getTrackerStreak(tracker)
+            );
     }
 }
 
@@ -1093,7 +1605,8 @@ function renderProgressTrackers() {
             renderTrackerHeatmap(
                 tracker,
                 grid,
-                streakElement
+                streakElement,
+                currentProgressDate || getLocalDateString()
             );
         }
     );
@@ -1235,30 +1748,77 @@ function updateRings(
         suppliedTotal ||
         calculateCurrentFoodTotal();
 
+    /*
+     * Layout is controlled by CSS:
+     * Row 1: Protein / Calories / Fibre
+     * Row 2: Water / Steps / Fat / Carbohydrates
+     *
+     * The order in the second row is deliberately Water, Steps,
+     * Fat, Carbohydrates as requested.
+     */
     const ringData = [
         {
             key: "protein",
             value: Number(total.protein) || 0,
             target: Number(targets.protein) || 120,
-            color: "#e53935"
+            color: "#e53935",
+            decimals: 1
         },
         {
             key: "calories",
             value: Number(total.calories) || 0,
             target: Number(targets.calories) || 1200,
-            color: "#f59e0b"
+            color: "#f59e0b",
+            decimals: 0
         },
         {
             key: "fibre",
             value: Number(total.fibre) || 0,
             target: Number(targets.fibre) || 30,
-            color: "#22c55e"
+            color: "#22c55e",
+            decimals: 1
         },
         {
             key: "water",
-            value: Number(getWaterIntake()) || 0,
+            value:
+                suppliedTotal &&
+                Object.prototype.hasOwnProperty.call(
+                    suppliedTotal,
+                    "water"
+                )
+                    ? Number(suppliedTotal.water) || 0
+                    : Number(getWaterIntake()) || 0,
             target: Number(targets.water) || 3,
-            color: "#2196f3"
+            color: "#2196f3",
+            decimals: 1
+        },
+        {
+            key: "steps",
+            value:
+                suppliedTotal &&
+                Object.prototype.hasOwnProperty.call(
+                    suppliedTotal,
+                    "steps"
+                )
+                    ? Number(suppliedTotal.steps) || 0
+                    : Number(getStepCount()) || 0,
+            target: Number(targets.steps) || 8000,
+            color: "#8b5cf6",
+            decimals: 0
+        },
+        {
+            key: "fat",
+            value: Number(total.fat) || 0,
+            target: Number(targets.fat) || 60,
+            color: "#f97316",
+            decimals: 1
+        },
+        {
+            key: "carbs",
+            value: Number(total.carbs) || 0,
+            target: Number(targets.carbs) || 130,
+            color: "#06b6d4",
+            decimals: 1
         }
     ];
 
@@ -1297,7 +1857,6 @@ function updateRings(
         if (
             !baseRing ||
             !activeRing ||
-            !tip ||
             !value ||
             !target
         ) {
@@ -1311,68 +1870,37 @@ function updateRings(
             Math.max(item.value / safeTarget, 0);
 
         /*
-         * EXACT MODEL:
+         * Preserve the approved ring model:
+         * 0-100% = dark base ring.
+         * 101-199% = light completed base + dark current lap.
+         * 200% = light completed base.
+         * 201-299% = same model again.
          *
-         * 0-100%
-         *   One dark base ring.
-         *   No shadow.
-         *
-         * 101-199%
-         *   The completed first 100% becomes one shade lighter.
-         *   The amount above 100% becomes a new dark, thicker ring.
-         *   Example 110% = light 100% + dark 10%.
-         *
-         * 200%
-         *   The full 200% is represented by one lighter completed
-         *   ring. No active second-lap tip because there is no
-         *   percentage above the target at this exact point.
-         *
-         * 201-299%
-         *   The completed 200% becomes one shade lighter.
-         *   A new dark third lap starts at the percentage above 200%.
-         *
-         * 300%
-         *   Completed 300% is again the lighter base ring.
-         *
-         * 301%+
-         *   A new dark fourth lap starts.
-         *
-         * The visual is therefore always:
-         *
-         *   LIGHT COMPLETED BASE
-         *              +
-         *   DARK CURRENT OVERLAY
-         *
-         * with the current overlay exactly 1px thicker.
+         * This repeats for any number of completed target laps.
          */
-
-        const wholeTargets =
+        const completedLaps =
             Math.floor(ratio);
 
         const remainder =
-            ratio - wholeTargets;
+            ratio - completedLaps;
 
-        const isOverTarget =
-            ratio > 1;
-
-        /*
-         * At 100% exactly:
-         * keep the original base color.
-         *
-         * Once anything above 100% exists:
-         * completed portion becomes one shade lighter.
-         *
-         * The same happens after every additional full target.
-         */
-        const baseIsCompleted =
+        const hasCompletedFirstLap =
             ratio >= 1;
 
+        /*
+         * Each completed lap is represented by the base circle,
+         * becoming progressively lighter as another lap is completed.
+         * The currently active lap stays the original dark color.
+         */
+        const lightAmount =
+            Math.min(
+                0.30 + Math.max(completedLaps - 1, 0) * 0.12,
+                0.78
+            );
+
         const baseColor =
-            baseIsCompleted
-                ? lightenColor(
-                    item.color,
-                    0.30
-                )
+            hasCompletedFirstLap
+                ? lightenColor(item.color, lightAmount)
                 : item.color;
 
         baseRing.style.setProperty(
@@ -1394,9 +1922,8 @@ function updateRings(
         );
 
         /*
-         * Base ring is always a COMPLETE circle once the first
-         * target is reached. Before that it follows the first
-         * target percentage.
+         * Before the first target, show normal progress.
+         * At/above 100%, the base is a complete light circle.
          */
         const baseProgress =
             Math.min(ratio, 1);
@@ -1409,55 +1936,18 @@ function updateRings(
 
         baseRing.style.setProperty(
             "stroke-dashoffset",
-            circumference *
-                (1 - baseProgress),
+            circumference * (1 - baseProgress),
             "important"
         );
 
         /*
-         * Current dark overlay:
-         *
-         * Only exists when the user is ABOVE an exact multiple
-         * of the target.
-         *
-         * 101% -> 1%
-         * 110% -> 10%
-         * 120% -> 20%
-         * 201% -> 1%
-         * 220% -> 20%
-         * 301% -> 1%
+         * Current lap:
+         * only show when there is something above a completed target.
          */
-        let overlayProgress = 0;
-
-        if (ratio > 1) {
-            overlayProgress =
-                remainder > 0
-                    ? remainder
-                    : 0;
-        }
-
-        /*
-         * Special case before 100%:
-         * the base ring itself handles the progress.
-         */
-        if (ratio <= 1) {
-            activeRing.style.setProperty(
-                "opacity",
-                "0",
-                "important"
-            );
-
-            tip.style.setProperty(
-                "opacity",
-                "0",
-                "important"
-            );
-        } else if (overlayProgress > 0) {
-
-            /*
-             * The overlay ALWAYS starts from the top and uses the
-             * original dark Apple-inspired base color.
-             */
+        if (
+            ratio > 1 &&
+            remainder > 0
+        ) {
             activeRing.style.setProperty(
                 "stroke",
                 item.color,
@@ -1472,7 +1962,7 @@ function updateRings(
 
             activeRing.style.setProperty(
                 "stroke-dasharray",
-                `${circumference * overlayProgress} ${circumference}`,
+                `${circumference * remainder} ${circumference}`,
                 "important"
             );
 
@@ -1488,9 +1978,6 @@ function updateRings(
                 "important"
             );
 
-            /*
-             * NO blur, NO glow, NO colored shadow on the ring path.
-             */
             activeRing.style.setProperty(
                 "filter",
                 "none",
@@ -1498,89 +1985,76 @@ function updateRings(
             );
 
             /*
-             * BLACK TIP SHADOW ONLY.
-             *
-             * It is deliberately a small black translucent circle,
-             * with a tiny black drop-shadow. Nothing else is blurred.
+             * Keep the approved tip-only shadow behavior if the
+             * base HTML contains the tip element.
              */
-            const angle =
-                (
-                    -90 +
-                    overlayProgress * 360
-                ) *
-                Math.PI / 180;
+            if (tip) {
+                const angle =
+                    (-90 + remainder * 360) *
+                    Math.PI / 180;
 
-            const x =
-                70 +
-                radius * Math.cos(angle);
+                const x =
+                    70 + radius * Math.cos(angle);
 
-            const y =
-                70 +
-                radius * Math.sin(angle);
+                const y =
+                    70 + radius * Math.sin(angle);
 
-            tip.setAttribute(
-                "cx",
-                x.toFixed(2)
-            );
+                tip.setAttribute("cx", x.toFixed(2));
+                tip.setAttribute("cy", y.toFixed(2));
 
-            tip.setAttribute(
-                "cy",
-                y.toFixed(2)
-            );
+                tip.style.setProperty(
+                    "fill",
+                    "#111111",
+                    "important"
+                );
 
-            tip.style.setProperty(
-                "fill",
-                "#111111",
-                "important"
-            );
+                tip.style.setProperty(
+                    "filter",
+                    "drop-shadow(0 1px 2px rgba(0,0,0,0.45))",
+                    "important"
+                );
 
-            tip.style.setProperty(
-                "filter",
-                "drop-shadow(0 1px 2px rgba(0,0,0,0.45))",
-                "important"
-            );
-
-            tip.style.setProperty(
-                "opacity",
-                "0.78",
-                "important"
-            );
+                tip.style.setProperty(
+                    "opacity",
+                    "0.78",
+                    "important"
+                );
+                tip.style.setProperty(
+                    "display",
+                    "block",
+                    "important"
+                );
+            }
         } else {
-
-            /*
-             * Exactly 200%, 300%, etc.
-             * Completed base ring is visible in its lighter shade,
-             * but no new dark overlay exists until 201%, 301%, etc.
-             */
             activeRing.style.setProperty(
                 "opacity",
                 "0",
                 "important"
             );
 
-            tip.style.setProperty(
-                "opacity",
-                "0",
-                "important"
-            );
+            if (tip) {
+                tip.style.setProperty(
+                    "opacity",
+                    "0",
+                    "important"
+                );
+                tip.style.setProperty(
+                    "display",
+                    "none",
+                    "important"
+                );
+            }
         }
 
         /*
-         * Hide any dynamically-created old lap elements from
-         * previous versions. We deliberately use ONLY the base
-         * ring + one active overlay now.
+         * Hide any old dynamically-created lap layers.
          */
         const svg =
             baseRing.closest("svg");
 
         if (svg) {
-            svg.querySelectorAll(
-                ".ring-extra"
-            ).forEach(layer => {
-
-                if (
-                    layer !== activeRing
-                ) {
+            svg.querySelectorAll(".ring-extra").forEach(layer => {
+                if (layer !== activeRing) {
                     layer.style.setProperty(
                         "opacity",
                         "0",
@@ -1590,44 +2064,38 @@ function updateRings(
             });
         }
 
-
-        const tipElement =
-            getElement(`${item.key}RingTipShadow`);
-
-        if (tipElement) {
-            tipElement.style.setProperty(
-                "opacity",
-                "0",
-                "important"
-            );
-            tipElement.style.setProperty(
-                "display",
-                "none",
-                "important"
-            );
-        }
-
         value.textContent =
-            item.key === "calories"
-                ? Math.round(item.value)
-                : item.value.toFixed(1);
+            item.decimals === 0
+                ? Math.round(item.value).toLocaleString()
+                : item.value.toFixed(item.decimals);
 
         target.textContent =
-            item.target;
+            item.key === "steps"
+                ? Math.round(item.target).toLocaleString()
+                : item.target;
 
         if (item.key === "water") {
             const dailyTarget =
-                getElement(
-                    "dailyWaterTarget"
-                );
+                getElement("dailyWaterTarget");
 
             if (dailyTarget) {
                 dailyTarget.textContent =
                     item.target;
             }
         }
+
+        if (item.key === "steps") {
+            const dailyTarget =
+                getElement("dailyStepTarget");
+
+            if (dailyTarget) {
+                dailyTarget.textContent =
+                    Math.round(item.target).toLocaleString();
+            }
+        }
     });
 }
+
 
 function calculateCurrentFoodTotal() {
 
@@ -1742,9 +2210,11 @@ document
                     button.dataset.page ===
                     "progressPage"
                 ) {
-
                     renderHistory();
-
+                    showProgressForDate(
+                        currentProgressDate ||
+                        getLocalDateString()
+                    );
                 }
 
 
@@ -2608,9 +3078,14 @@ getElement(
         calculateTotals();
 
         loadWaterIntake();
+        loadStepCount();
         renderProgressTrackers();
 
         updateRings();
+
+        currentProgressDate =
+            getElement("logDate").value ||
+            getLocalDateString();
 
     }
 );
@@ -2624,95 +3099,86 @@ getElement(
     "saveDayBtn"
 ).addEventListener(
     "click",
-    function () {
+    async function () {
 
         const date =
-            getElement(
-                "logDate"
-            ).value;
+            getElement("logDate").value;
 
-        if (date && !savedDates.includes(date)) {
-            savedDates.push(date);
-            savedDates.sort();
+        if (!date) {
+            alert("Select a date first.");
+            return;
+        }
+
+        /*
+         * If this date was already saved and its calendar-day
+         * editing window has expired, the meal-level record is read-only.
+         */
+        if (
+            dailyLogMeta[date] &&
+            !isDailyLogEditable(date)
+        ) {
+            alert(
+                "This day's editing window has expired. " +
+                "You can still open its Progress, but it can no longer be edited."
+            );
+            cleanupExpiredDailyFoodLogs();
+            saveStorage();
+            renderHistory();
+            return;
+        }
+
+        /*
+         * First SAVE establishes today's saved record.
+         * Later saves update the same day's meal list until midnight.
+         */
+        if (!dailyLogMeta[date]) {
+            dailyLogMeta[date] = {
+                savedAt: new Date().toISOString()
+            };
         }
 
         logs =
             logs.filter(
-                item =>
-                    item.date !==
-                    date
+                item => item.date !== date
             );
-
 
         document
-            .querySelectorAll(
-                ".meal-card"
-            )
-            .forEach(
-                card => {
+            .querySelectorAll(".meal-card")
+            .forEach(card => {
 
-                    const meal =
-                        card.dataset.meal;
+                const meal =
+                    card.dataset.meal;
 
+                card
+                    .querySelectorAll(".food-row")
+                    .forEach(row => {
 
-                    card
-                        .querySelectorAll(
-                            ".food-row"
-                        )
-                        .forEach(
-                            row => {
+                        if (
+                            row.dataset.food &&
+                            row.dataset.amount
+                        ) {
+                            logs.push({
+                                date,
+                                meal,
+                                food: row.dataset.food,
+                                amount: row.dataset.amount
+                            });
+                        }
+                    });
+            });
 
-                                if (
-                                    row.dataset.food &&
-                                    row.dataset.amount
-                                ) {
+        updateDailySummaryFromCurrentDay(date);
 
-                                    logs.push({
+        await saveStorage();
 
-                                        date:
-                                            date,
+        getElement("saveMessage").textContent =
+            `Day saved. You can edit it until ${formatDailyDeadline(date)}.`;
 
-                                        meal:
-                                            meal,
+        renderHistory();
 
-                                        food:
-                                            row.dataset.food,
-
-                                        amount:
-                                            row.dataset.amount
-
-                                    });
-
-                                }
-
-                            }
-                        );
-
-                }
-            );
-
-
-        saveStorage();
-
-
-        getElement(
-            "saveMessage"
-        ).textContent =
-            "Day saved successfully.";
-
-
-        setTimeout(
-            function () {
-
-                getElement(
-                    "saveMessage"
-                ).textContent =
-                    "";
-
-            },
-            2000
-        );
-
+        setTimeout(() => {
+            getElement("saveMessage").textContent = "";
+        }, 4000);
     }
 );
 
@@ -2737,6 +3203,9 @@ All food entries and tracker values for this date will be reset.`
     delete trackerLogs[date];
     delete supplementLogs[date];
     delete waterLogs[date];
+    delete stepLogs[date];
+    delete dailySummaries[date];
+    delete dailyLogMeta[date];
 
     saveStorage();
 
@@ -2750,40 +3219,66 @@ All food entries and tracker values for this date will be reset.`
 }
 
 function renderProgressAverages() {
-    const from = getElement("fromDate")?.value || getLocalDateString();
-    const to = getElement("toDate")?.value || getLocalDateString();
-    const dates = savedDates.filter(date => date >= from && date <= to);
-    const dailyTotals = [];
 
-    dates.forEach(date => {
-        const total = { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 };
-        logs.filter(item => item.date === date).forEach(item => {
-            const nutrition = getNutrition(item.food, item.amount);
-            if (!nutrition) return;
-            total.calories += nutrition.calories;
-            total.protein += nutrition.protein;
-            total.carbs += nutrition.carbs;
-            total.fat += nutrition.fat;
-            total.fibre += nutrition.fibre;
-        });
-        dailyTotals.push(total);
-    });
+    const from =
+        getElement("fromDate")?.value ||
+        getLocalDateString();
+
+    const to =
+        getElement("toDate")?.value ||
+        getLocalDateString();
+
+    const dates =
+        savedDates.filter(
+            date =>
+                date >= from &&
+                date <= to
+        );
+
+    const dailyTotals =
+        dates.map(
+            date => getProgressTotals(date)
+        );
 
     updateAverages(dailyTotals);
 }
 
 function renderHistory() {
 
-    const from = getElement("dailyHistoryFromDate")?.value || getElement("fromDate").value;
-    const to = getElement("dailyHistoryToDate")?.value || getElement("toDate").value;
-    const history = getElement("historyList");
+    const from =
+        getElement("dailyHistoryFromDate")?.value ||
+        getElement("fromDate").value;
+
+    const to =
+        getElement("dailyHistoryToDate")?.value ||
+        getElement("toDate").value;
+
+    const history =
+        getElement("historyList");
 
     history.innerHTML = "";
 
-    const dates = savedDates
-        .filter(date => date >= from && date <= to)
-        .sort()
-        .reverse();
+    cleanupExpiredDailyFoodLogs();
+
+    const fromDateValue = from || "0000-01-01";
+    const toDateValue = to || "9999-12-31";
+
+    if (from && to && from > to) {
+        history.innerHTML = `
+            <p class="muted">From date cannot be after To date.</p>
+        `;
+        updateAverages([]);
+        return;
+    }
+
+    const dates =
+        savedDates
+            .filter(date =>
+                date >= fromDateValue &&
+                date <= toDateValue
+            )
+            .sort()
+            .reverse();
 
     if (dates.length === 0) {
         history.innerHTML = `
@@ -2797,70 +3292,126 @@ function renderHistory() {
 
     dates.forEach(date => {
 
-        const total = {
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fat: 0,
-            fibre: 0
-        };
-
-        logs
-            .filter(item => item.date === date)
-            .forEach(item => {
-                const nutrition = getNutrition(item.food, item.amount);
-                if (!nutrition) return;
-                total.calories += nutrition.calories;
-                total.protein += nutrition.protein;
-                total.carbs += nutrition.carbs;
-                total.fat += nutrition.fat;
-                total.fibre += nutrition.fibre;
-            });
+        const total =
+            getProgressTotals(date);
 
         dailyTotals.push(total);
 
-        const row = document.createElement("div");
-        row.className = "history-row daily-log-history-row";
+        const row =
+            document.createElement("div");
 
-        const info = document.createElement("div");
+        row.className =
+            "history-row daily-log-history-row";
+
+        const info =
+            document.createElement("div");
+
+        const editable =
+            isDailyLogEditable(date);
+
+        const deadline =
+            formatDailyDeadline(date);
+
         info.innerHTML = `
-            <strong>${date}</strong><br>
-            <span class="muted">${total.calories.toFixed(0)} kcal · ${total.protein.toFixed(1)} g protein · ${total.fibre.toFixed(1)} g fibre</span>
+            <strong>${formatDisplayDate(date)}</strong><br>
+            <span class="muted">
+                ${total.calories.toFixed(0)} kcal ·
+                ${total.protein.toFixed(1)} g protein ·
+                ${total.fibre.toFixed(1)} g fibre
+            </span>
+            ${
+                editable
+                    ? `<small class="muted">Editable until ${deadline}</small>`
+                    : `<small class="muted">Read-only history</small>`
+            }
         `;
 
-        const actions = document.createElement("div");
-        actions.className = "history-actions";
+        const actions =
+            document.createElement("div");
 
-        const openButton = document.createElement("button");
+        actions.className =
+            "history-actions";
+
+        if (editable) {
+            const editButton =
+                document.createElement("button");
+
+            editButton.type = "button";
+            editButton.className = "history-open-btn";
+            editButton.textContent = "Edit";
+
+            editButton.addEventListener(
+                "click",
+                () => {
+                    getElement("logDate").value = date;
+
+                    document
+                        .querySelector('[data-page="dailyPage"]')
+                        .click();
+
+                    renderMeals();
+                    renderDailyTrackers();
+                    loadWaterIntake();
+                    loadStepCount();
+                    calculateTotals();
+                    updateRings();
+                    renderHistory();
+                }
+            );
+
+            actions.appendChild(editButton);
+        }
+
+        const openButton =
+            document.createElement("button");
+
         openButton.type = "button";
         openButton.className = "history-open-btn";
         openButton.textContent = "Open";
-        openButton.addEventListener("click", () => {
-            getElement("logDate").value = date;
-            document.querySelector('[data-page="dailyPage"]').click();
-            renderMeals();
-            renderDailyTrackers();
-            calculateTotals();
-            updateRings();
-        });
 
-        const deleteButton = document.createElement("button");
+        openButton.addEventListener(
+            "click",
+            () => {
+                currentProgressDate = date;
+
+                document
+                    .querySelector('[data-page="progressPage"]')
+                    .click();
+
+                showProgressForDate(date);
+            }
+        );
+
+        const deleteButton =
+            document.createElement("button");
+
         deleteButton.type = "button";
         deleteButton.className = "history-delete-btn";
         deleteButton.textContent = "Delete";
-        deleteButton.addEventListener("click", event => {
-            event.stopPropagation();
-            deleteDailyLog(date);
-        });
 
-        actions.append(openButton, deleteButton);
-        row.append(info, actions);
+        deleteButton.addEventListener(
+            "click",
+            event => {
+                event.stopPropagation();
+                deleteDailyLog(date);
+            }
+        );
+
+        actions.append(
+            openButton,
+            deleteButton
+        );
+
+        row.append(
+            info,
+            actions
+        );
+
         history.appendChild(row);
     });
 
     updateAverages(dailyTotals);
 }
-
 
 function updateAverages(
     days
@@ -2971,6 +3522,471 @@ getElement(
     renderProgressAverages
 );
 
+
+
+/* =========================================
+   EXCEL BACKUP / RESTORE
+========================================= */
+
+function downloadBlob(
+    blob,
+    filename
+) {
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(
+        () => URL.revokeObjectURL(url),
+        1000
+    );
+}
+
+function requireXLSX() {
+    if (!window.XLSX) {
+        alert(
+            "Excel support is not loaded yet. " +
+            "Please refresh the page and try again."
+        );
+        return false;
+    }
+
+    return true;
+}
+
+function exportFoodBackup() {
+    if (!requireXLSX()) return;
+
+    const workbook =
+        XLSX.utils.book_new();
+
+    const foodRows =
+        foods.map(food => ({
+            ID: food.id,
+            Name: food.name,
+            Category: food.category,
+            Calories_per_100g: food.calories,
+            Protein_per_100g: food.protein,
+            Carbs_per_100g: food.carbs,
+            Fat_per_100g: food.fat,
+            Fibre_per_100g: food.fibre,
+            Sugar_per_100g: food.sugar,
+            Serving_Weight_g: food.servingWeight,
+            Serving_Options:
+                Array.isArray(food.servingOptions)
+                    ? food.servingOptions.join(", ")
+                    : "",
+            Total_Dish_Weight_g:
+                food.totalWeight || "",
+            Dish_Ingredients:
+                food.ingredients
+                    ? JSON.stringify(food.ingredients)
+                    : ""
+        }));
+
+    const sheet =
+        XLSX.utils.json_to_sheet(foodRows);
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        sheet,
+        "Food Database"
+    );
+
+    XLSX.writeFile(
+        workbook,
+        `Nutrition_Foods_Backup_${getLocalDateString()}.xlsx`
+    );
+}
+
+function exportPersonalBackup() {
+    if (!requireXLSX()) return;
+
+    const workbook =
+        XLSX.utils.book_new();
+
+    const dailyRows =
+        Object.values(dailySummaries)
+            .sort((a, b) =>
+                String(a.date).localeCompare(String(b.date))
+            )
+            .map(item => ({
+                Date: item.date,
+                Calories: Number(item.calories) || 0,
+                Protein_g: Number(item.protein) || 0,
+                Fibre_g: Number(item.fibre) || 0,
+                Carbs_g: Number(item.carbs) || 0,
+                Fat_g: Number(item.fat) || 0,
+                Water_L: Number(item.water) || 0,
+                Steps: Number(item.steps) || 0,
+                Gym: item.gym === true ? "Yes" : "No",
+                Sugar_Taken: item.sugar === true ? "Yes" : "No",
+                Main: item.main === true ? "Yes" : "No",
+                Supplements: item.supplements === true ? "Yes" : "No",
+                Weight_kg:
+                    item.weight === null ||
+                    item.weight === undefined
+                        ? ""
+                        : Number(item.weight)
+            }));
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(dailyRows),
+        "Daily Progress"
+    );
+
+    const weightRows =
+        weightLogs.map(item => ({
+            Date: item.date,
+            Weight_kg: Number(item.weight) || 0
+        }));
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(weightRows),
+        "Weight"
+    );
+
+    const trackerRows =
+        Object.entries(trackerLogs)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, values]) => ({
+                Date: date,
+                Gym: values?.gym === true ? "Yes" : "No",
+                Sugar_Taken: values?.sugar === true ? "Yes" : "No",
+                Main: values?.main === true ? "Yes" : "No",
+                Supplements: values?.supplements === true ? "Yes" : "No"
+            }));
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(trackerRows),
+        "Trackers"
+    );
+
+    const targetRows = [{
+        Protein_g: Number(targets.protein) || 120,
+        Calories_kcal: Number(targets.calories) || 1200,
+        Fibre_g: Number(targets.fibre) || 30,
+        Water_L: Number(targets.water) || 3,
+        Carbs_g: Number(targets.carbs) || 130,
+        Fat_g: Number(targets.fat) || 60,
+        Steps: Number(targets.steps) || 8000
+    }];
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        XLSX.utils.json_to_sheet(targetRows),
+        "Targets"
+    );
+
+    XLSX.writeFile(
+        workbook,
+        `Nutrition_Personal_Backup_${getLocalDateString()}.xlsx`
+    );
+}
+
+function importFoodBackup(file) {
+    if (!file || !requireXLSX()) return;
+
+    const reader =
+        new FileReader();
+
+    reader.onload = function(event) {
+        try {
+            const workbook =
+                XLSX.read(
+                    event.target.result,
+                    { type: "array" }
+                );
+
+            const sheet =
+                workbook.Sheets["Food Database"] ||
+                workbook.Sheets[workbook.SheetNames[0]];
+
+            const rows =
+                XLSX.utils.sheet_to_json(sheet);
+
+            const imported =
+                rows
+                    .filter(row => row.Name)
+                    .map(row => {
+                        let ingredients = [];
+
+                        if (row.Dish_Ingredients) {
+                            try {
+                                ingredients =
+                                    JSON.parse(
+                                        row.Dish_Ingredients
+                                    );
+                            } catch (_) {}
+                        }
+
+                        return {
+                            id:
+                                Number(row.ID) ||
+                                Date.now() +
+                                Math.random(),
+                            name: String(row.Name),
+                            category:
+                                String(row.Category || "food"),
+                            calories:
+                                Number(row.Calories_per_100g) || 0,
+                            protein:
+                                Number(row.Protein_per_100g) || 0,
+                            carbs:
+                                Number(row.Carbs_per_100g) || 0,
+                            fat:
+                                Number(row.Fat_per_100g) || 0,
+                            fibre:
+                                Number(row.Fibre_per_100g) || 0,
+                            sugar:
+                                Number(row.Sugar_per_100g) || 0,
+                            servingWeight:
+                                Number(row.Serving_Weight_g) || 0,
+                            servingOptions:
+                                String(
+                                    row.Serving_Options || ""
+                                )
+                                    .split(",")
+                                    .map(x => x.trim())
+                                    .filter(Boolean),
+                            totalWeight:
+                                Number(row.Total_Dish_Weight_g) || 0,
+                            ingredients
+                        };
+                    });
+
+            if (!imported.length) {
+                alert("No food records were found in this Excel file.");
+                return;
+            }
+
+            if (
+                !confirm(
+                    `Import ${imported.length} food/dish records? ` +
+                    "This will replace your current Food Database."
+                )
+            ) {
+                return;
+            }
+
+            foods = imported;
+            saveStorage();
+            renderFoodList();
+            renderMeals();
+
+            alert("Food Database imported successfully.");
+        } catch (error) {
+            console.error("Food Excel import failed:", error);
+            alert("Could not import this Food Database Excel file.");
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function importPersonalBackup(file) {
+    if (!file || !requireXLSX()) return;
+
+    const reader =
+        new FileReader();
+
+    reader.onload = function(event) {
+        try {
+            const workbook =
+                XLSX.read(
+                    event.target.result,
+                    { type: "array" }
+                );
+
+            const dailySheet =
+                workbook.Sheets["Daily Progress"];
+
+            if (!dailySheet) {
+                alert(
+                    "This does not look like a Nutrition Personal Backup file."
+                );
+                return;
+            }
+
+            const dailyRows =
+                XLSX.utils.sheet_to_json(
+                    dailySheet
+                );
+
+            if (
+                !confirm(
+                    "Restore Personal Data from this Excel file? " +
+                    "Your current daily summaries, trackers and weight history will be replaced."
+                )
+            ) {
+                return;
+            }
+
+            dailySummaries = {};
+
+            dailyRows.forEach(row => {
+                if (!row.Date) return;
+
+                dailySummaries[String(row.Date)] = {
+                    date: String(row.Date),
+                    calories: Number(row.Calories) || 0,
+                    protein: Number(row.Protein_g) || 0,
+                    fibre: Number(row.Fibre_g) || 0,
+                    carbs: Number(row.Carbs_g) || 0,
+                    fat: Number(row.Fat_g) || 0,
+                    water: Number(row.Water_L) || 0,
+                    gym: String(row.Gym).toLowerCase() === "yes",
+                    sugar: String(row.Sugar_Taken).toLowerCase() === "yes",
+                    main: String(row.Main).toLowerCase() === "yes",
+                    supplements:
+                        String(row.Supplements).toLowerCase() === "yes",
+                    weight:
+                        row.Weight_kg === ""
+                            ? null
+                            : Number(row.Weight_kg)
+                };
+            });
+
+            savedDates =
+                Object.keys(dailySummaries).sort();
+
+            const trackerSheet =
+                workbook.Sheets["Trackers"];
+
+            trackerLogs = {};
+
+            if (trackerSheet) {
+                XLSX.utils.sheet_to_json(
+                    trackerSheet
+                ).forEach(row => {
+                    if (!row.Date) return;
+
+                    trackerLogs[String(row.Date)] = {
+                        gym:
+                            String(row.Gym).toLowerCase() === "yes",
+                        sugar:
+                            String(row.Sugar_Taken).toLowerCase() === "yes",
+                        main:
+                            String(row.Main).toLowerCase() === "yes",
+                        supplements:
+                            String(row.Supplements).toLowerCase() === "yes"
+                    };
+                });
+            }
+
+            const weightSheet =
+                workbook.Sheets["Weight"];
+
+            weightLogs = [];
+
+            if (weightSheet) {
+                XLSX.utils.sheet_to_json(
+                    weightSheet
+                ).forEach(row => {
+                    if (!row.Date) return;
+
+                    weightLogs.push({
+                        id: Date.now() + Math.random(),
+                        date: String(row.Date),
+                        weight: Number(row.Weight_kg) || 0
+                    });
+                });
+            }
+
+            const targetSheet =
+                workbook.Sheets["Targets"];
+
+            if (targetSheet) {
+                const rows =
+                    XLSX.utils.sheet_to_json(
+                        targetSheet
+                    );
+
+                if (rows[0]) {
+                    targets = {
+                        protein:
+                            Number(rows[0].Protein_g) || 120,
+                        calories:
+                            Number(rows[0].Calories_kcal) || 1200,
+                        fibre:
+                            Number(rows[0].Fibre_g) || 30,
+                        water:
+                            Number(rows[0].Water_L) || 3
+                    };
+                }
+            }
+
+            /*
+             * Imported personal data is historical. Do not create
+             * editable meal-level records from Excel.
+             */
+            logs = [];
+            dailyLogMeta = {};
+
+            savedDates.forEach(date => {
+                dailyLogMeta[date] = {
+                    savedAt:
+                        `${date}T00:00:00`
+                };
+            });
+
+            saveStorage();
+
+            loadTargetInputs();
+            renderHistory();
+            renderProgressAverages();
+            renderProgressTrackers();
+            renderWeightPage();
+            showProgressForDate(
+                getLocalDateString()
+            );
+
+            alert("Personal Data imported successfully.");
+        } catch (error) {
+            console.error("Personal Excel import failed:", error);
+            alert("Could not import this Personal Data Excel file.");
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+getElement("exportFoodBtn")?.addEventListener(
+    "click",
+    exportFoodBackup
+);
+
+getElement("importFoodInput")?.addEventListener(
+    "change",
+    event => {
+        importFoodBackup(event.target.files?.[0]);
+        event.target.value = "";
+    }
+);
+
+getElement("exportPersonalBtn")?.addEventListener(
+    "click",
+    exportPersonalBackup
+);
+
+getElement("importPersonalInput")?.addEventListener(
+    "change",
+    event => {
+        importPersonalBackup(event.target.files?.[0]);
+        event.target.value = "";
+    }
+);
 
 /* =========================================
    FOOD CATEGORY + DISH BUILDER
