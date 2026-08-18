@@ -3272,3 +3272,140 @@ body {
     background: #2563eb;
     pointer-events: none;
 }
+
+
+/* ============================================================
+   V1.4.1 — MOBILE RING LAYOUT
+   Keep the same desktop arrangement on phones:
+   Row 1: Protein / Calories / Fibre (3)
+   Row 2: Water / Steps / Fat / Carbohydrates (4)
+   ============================================================ */
+
+.ring-grid {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+    align-items: start !important;
+}
+
+.ring-card.protein-ring,
+.ring-card.calories-ring,
+.ring-card.fibre-ring {
+    grid-column: span 4 !important;
+}
+
+.ring-card.secondary-ring {
+    grid-column: span 3 !important;
+    min-width: 0 !important;
+    transform: scale(0.78) !important;
+    transform-origin: top center !important;
+    margin-bottom: -32px !important;
+}
+
+.ring-card.secondary-ring .ring-wrap {
+    width: 115px !important;
+    height: 115px !important;
+    max-width: 115px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+@media (max-width: 700px) {
+    .ring-grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+        gap: 4px !important;
+        width: 100% !important;
+    }
+
+    /* Three large rings remain side-by-side. */
+    .ring-card.protein-ring,
+    .ring-card.calories-ring,
+    .ring-card.fibre-ring {
+        grid-column: span 4 !important;
+    }
+
+    .ring-card.protein-ring .ring-wrap,
+    .ring-card.calories-ring .ring-wrap,
+    .ring-card.fibre-ring .ring-wrap {
+        width: 102px !important;
+        height: 102px !important;
+    }
+
+    /* Four smaller rings remain side-by-side. */
+    .ring-card.secondary-ring {
+        grid-column: span 3 !important;
+        transform: scale(0.82) !important;
+        transform-origin: top center !important;
+        margin-bottom: -24px !important;
+        min-width: 0 !important;
+    }
+
+    .ring-card.secondary-ring .ring-wrap {
+        width: 78px !important;
+        height: 78px !important;
+        max-width: 78px !important;
+    }
+
+    .ring-card.secondary-ring .ring-center strong {
+        font-size: 14px !important;
+    }
+
+    .ring-card.secondary-ring .ring-center span {
+        font-size: 7px !important;
+    }
+
+    .ring-card.secondary-ring > strong {
+        font-size: 11px !important;
+        line-height: 1.1 !important;
+        white-space: normal !important;
+    }
+
+    .ring-card.secondary-ring > small {
+        font-size: 8px !important;
+        line-height: 1.1 !important;
+        white-space: nowrap !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .ring-grid {
+        gap: 2px !important;
+    }
+
+    .ring-card.protein-ring .ring-wrap,
+    .ring-card.calories-ring .ring-wrap,
+    .ring-card.fibre-ring .ring-wrap {
+        width: 94px !important;
+        height: 94px !important;
+    }
+
+    .ring-card.secondary-ring {
+        transform: scale(0.76) !important;
+        margin-bottom: -30px !important;
+    }
+
+    .ring-card.secondary-ring .ring-wrap {
+        width: 72px !important;
+        height: 72px !important;
+        max-width: 72px !important;
+    }
+}
+
+/* ============================================================
+   V1.4.1 — HISTORICAL DATE INDICATOR
+   Selected date = blue outline square ONLY.
+   No blue dot and no halo.
+   ============================================================ */
+
+.habit-cell.selected-date-cell {
+    position: relative !important;
+    outline: 2px solid #2563eb !important;
+    outline-offset: 1px !important;
+    box-shadow: none !important;
+    z-index: 2 !important;
+}
+
+.habit-cell.selected-date-cell::after {
+    content: none !important;
+    display: none !important;
+}
