@@ -3409,3 +3409,30 @@ body {
     content: none !important;
     display: none !important;
 }
+
+/* V1.4.2 — deterministic ring zero state across desktop and mobile.
+   Progress is controlled directly by JS using stroke-dasharray. */
+.ring-progress,
+.ring-extra,
+.ring-lap {
+    stroke-dashoffset: 0 !important;
+}
+
+.ring-progress {
+    stroke-dasharray: 0 339.292 !important;
+}
+
+.ring-extra,
+.ring-lap {
+    stroke-dasharray: 0 339.292 !important;
+    opacity: 0 !important;
+}
+
+/* Never show a residual colored path when a ring is at zero. */
+.ring-progress[style*="opacity: 0"] {
+    opacity: 0 !important;
+}
+
+
+/* V1.4.4: selected-date/ring tip dots are intentionally disabled. */
+.ring-tip-shadow { display: none !important; opacity: 0 !important; }

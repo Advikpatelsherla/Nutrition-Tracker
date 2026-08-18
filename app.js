@@ -466,7 +466,10 @@ async function loadDataFromFirestore() {
                     protein: Number(data.targets.protein) || 120,
                     calories: Number(data.targets.calories) || 1200,
                     fibre: Number(data.targets.fibre) || 30,
-                    water: Number(data.targets.water) || 3
+                    water: Number(data.targets.water) || 3,
+                    carbs: Number(data.targets.carbs) || 130,
+                    fat: Number(data.targets.fat) || 60,
+                    steps: Number(data.targets.steps) || 8000
                 };
 
                 localStorage.setItem(
@@ -690,7 +693,16 @@ function updateDailySummaryFromCurrentDay(date) {
         supplements: trackerLogs[date]?.supplements === true,
         weight: Number(
             weightLogs.find(item => item.date === date)?.weight
-        ) || null
+        ) || null,
+        targets: {
+            protein: Number(targets.protein) || 120,
+            calories: Number(targets.calories) || 1200,
+            fibre: Number(targets.fibre) || 30,
+            water: Number(targets.water) || 3,
+            carbs: Number(targets.carbs) || 130,
+            fat: Number(targets.fat) || 60,
+            steps: Number(targets.steps) || 8000
+        }
     };
 
     if (!savedDates.includes(date)) {
@@ -763,7 +775,16 @@ function cleanupExpiredDailyFoodLogs() {
                 supplements: trackerLogs[date]?.supplements === true,
                 weight: Number(
                     weightLogs.find(item => item.date === date)?.weight
-                ) || null
+                ) || null,
+                targets: {
+                    protein: Number(targets.protein) || 120,
+                    calories: Number(targets.calories) || 1200,
+                    fibre: Number(targets.fibre) || 30,
+                    water: Number(targets.water) || 3,
+                    carbs: Number(targets.carbs) || 130,
+                    fat: Number(targets.fat) || 60,
+                    steps: Number(targets.steps) || 8000
+                }
             };
 
             /*
@@ -793,17 +814,22 @@ function showProgressForDate(date) {
     const summary = getDailySummary(targetDate);
 
     if (summary) {
-        updateRings({
-            calories: Number(summary.calories) || 0,
-            protein: Number(summary.protein) || 0,
-            carbs: Number(summary.carbs) || 0,
-            fat: Number(summary.fat) || 0,
-            fibre: Number(summary.fibre) || 0,
-            water: Number(summary.water) || 0,
-            steps: Number(summary.steps) || 0
-        });
+        updateRings(
+            {
+                calories: Number(summary.calories) || 0,
+                protein: Number(summary.protein) || 0,
+                carbs: Number(summary.carbs) || 0,
+                fat: Number(summary.fat) || 0,
+                fibre: Number(summary.fibre) || 0,
+                water: Number(summary.water) || 0,
+                steps: Number(summary.steps) || 0
+            },
+            summary.targets || null
+        );
+        loadTargetInputsForDate(summary.targets || targets);
     } else {
-        updateRings();
+        updateRings(null, targets);
+        loadTargetInputsForDate(targets);
     }
 
     renderProgressTrackers();
@@ -918,63 +944,73 @@ function saveTargets() {
         JSON.stringify(targets)
     );
 
+    const progressPageActive =
+        getElement("progressPage")?.classList.contains("active");
+
+    const targetDate =
+        progressPageActive
+            ? (currentProgressDate || getLocalDateString())
+            : (getElement("logDate")?.value || getLocalDateString());
+
+    // Target values are part of the daily Progress snapshot.
+    // If the day already has a saved summary, update that day's snapshot.
+    if (dailySummaries[targetDate]) {
+        dailySummaries[targetDate].targets = { ...targets };
+    }
+
     saveStorage();
 
-    updateRings();
+    updateRings(
+        targetDate === currentProgressDate && dailySummaries[targetDate]
+            ? {
+                calories: Number(dailySummaries[targetDate].calories) || 0,
+                protein: Number(dailySummaries[targetDate].protein) || 0,
+                carbs: Number(dailySummaries[targetDate].carbs) || 0,
+                fat: Number(dailySummaries[targetDate].fat) || 0,
+                fibre: Number(dailySummaries[targetDate].fibre) || 0,
+                water: Number(dailySummaries[targetDate].water) || 0,
+                steps: Number(dailySummaries[targetDate].steps) || 0
+            }
+            : null,
+        targets
+    );
 
 }
 
 
-function loadTargetInputs() {
+function loadTargetInputsForDate(targetSet = targets) {
 
-    if (
-        getElement("proteinTarget")
-    ) {
-        getElement(
-            "proteinTarget"
-        ).value =
-            targets.protein;
+    if (getElement("proteinTarget")) {
+        getElement("proteinTarget").value = Number(targetSet.protein) || 120;
     }
 
-    if (
-        getElement("calorieTarget")
-    ) {
-        getElement(
-            "calorieTarget"
-        ).value =
-            targets.calories;
+    if (getElement("calorieTarget")) {
+        getElement("calorieTarget").value = Number(targetSet.calories) || 1200;
     }
 
-    if (
-        getElement("fibreTarget")
-    ) {
-        getElement(
-            "fibreTarget"
-        ).value =
-            targets.fibre;
+    if (getElement("fibreTarget")) {
+        getElement("fibreTarget").value = Number(targetSet.fibre) || 30;
     }
 
-    if (
-        getElement("waterTarget")
-    ) {
-        getElement(
-            "waterTarget"
-        ).value =
-            targets.water;
+    if (getElement("waterTarget")) {
+        getElement("waterTarget").value = Number(targetSet.water) || 3;
     }
 
     if (getElement("carbsTarget")) {
-        getElement("carbsTarget").value = targets.carbs;
+        getElement("carbsTarget").value = Number(targetSet.carbs) || 130;
     }
 
     if (getElement("fatTarget")) {
-        getElement("fatTarget").value = targets.fat;
+        getElement("fatTarget").value = Number(targetSet.fat) || 60;
     }
 
     if (getElement("stepsTarget")) {
-        getElement("stepsTarget").value = targets.steps;
+        getElement("stepsTarget").value = Number(targetSet.steps) || 8000;
     }
+}
 
+function loadTargetInputs() {
+    loadTargetInputsForDate(targets);
 }
 
 
@@ -1742,39 +1778,42 @@ function ensureRingExtraLayers(key, requiredLaps) {
 }
 
 function updateRings(
-    suppliedTotal = null
+    suppliedTotal = null,
+    suppliedTargets = null
 ) {
     const total =
         suppliedTotal ||
         calculateCurrentFoodTotal();
 
-    /*
-     * Layout is controlled by CSS:
-     * Row 1: Protein / Calories / Fibre
-     * Row 2: Water / Steps / Fat / Carbohydrates
-     *
-     * The order in the second row is deliberately Water, Steps,
-     * Fat, Carbohydrates as requested.
-     */
+    const ringTargets = {
+        protein: Number(suppliedTargets?.protein ?? targets.protein) || 120,
+        calories: Number(suppliedTargets?.calories ?? targets.calories) || 1200,
+        fibre: Number(suppliedTargets?.fibre ?? targets.fibre) || 30,
+        water: Number(suppliedTargets?.water ?? targets.water) || 3,
+        carbs: Number(suppliedTargets?.carbs ?? targets.carbs) || 130,
+        fat: Number(suppliedTargets?.fat ?? targets.fat) || 60,
+        steps: Number(suppliedTargets?.steps ?? targets.steps) || 8000
+    };
+
     const ringData = [
         {
             key: "protein",
             value: Number(total.protein) || 0,
-            target: Number(targets.protein) || 120,
+            target: ringTargets.protein,
             color: "#e53935",
             decimals: 1
         },
         {
             key: "calories",
             value: Number(total.calories) || 0,
-            target: Number(targets.calories) || 1200,
+            target: ringTargets.calories,
             color: "#f59e0b",
             decimals: 0
         },
         {
             key: "fibre",
             value: Number(total.fibre) || 0,
-            target: Number(targets.fibre) || 30,
+            target: ringTargets.fibre,
             color: "#22c55e",
             decimals: 1
         },
@@ -1788,7 +1827,7 @@ function updateRings(
                 )
                     ? Number(suppliedTotal.water) || 0
                     : Number(getWaterIntake()) || 0,
-            target: Number(targets.water) || 3,
+            target: ringTargets.water,
             color: "#2196f3",
             decimals: 1
         },
@@ -1802,21 +1841,21 @@ function updateRings(
                 )
                     ? Number(suppliedTotal.steps) || 0
                     : Number(getStepCount()) || 0,
-            target: Number(targets.steps) || 8000,
+            target: ringTargets.steps,
             color: "#8b5cf6",
             decimals: 0
         },
         {
             key: "fat",
             value: Number(total.fat) || 0,
-            target: Number(targets.fat) || 60,
+            target: ringTargets.fat,
             color: "#f97316",
             decimals: 1
         },
         {
             key: "carbs",
             value: Number(total.carbs) || 0,
-            target: Number(targets.carbs) || 130,
+            target: ringTargets.carbs,
             color: "#06b6d4",
             decimals: 1
         }
@@ -1848,18 +1887,13 @@ function updateRings(
         const tip =
             getElement(`${item.key}RingTipShadow`);
 
-        const value =
+        const valueEl =
             getElement(`${item.key}RingValue`);
 
-        const target =
+        const targetEl =
             getElement(`${item.key}RingTarget`);
 
-        if (
-            !baseRing ||
-            !activeRing ||
-            !value ||
-            !target
-        ) {
+        if (!baseRing || !activeRing || !valueEl || !targetEl) {
             return;
         }
 
@@ -1867,40 +1901,39 @@ function updateRings(
             item.target > 0 ? item.target : 1;
 
         const ratio =
-            Math.max(item.value / safeTarget, 0);
+            Math.max(Number(item.value) / safeTarget, 0);
 
-        /*
-         * Preserve the approved ring model:
-         * 0-100% = dark base ring.
-         * 101-199% = light completed base + dark current lap.
-         * 200% = light completed base.
-         * 201-299% = same model again.
-         *
-         * This repeats for any number of completed target laps.
-         */
         const completedLaps =
             Math.floor(ratio);
 
         const remainder =
             ratio - completedLaps;
 
-        const hasCompletedFirstLap =
-            ratio >= 1;
-
         /*
-         * Each completed lap is represented by the base circle,
-         * becoming progressively lighter as another lap is completed.
-         * The currently active lap stays the original dark color.
+         * IMPORTANT:
+         * Use dasharray to define the visible arc directly.
+         * This avoids browser/viewport-specific dashoffset behavior.
+         *
+         * 0%   -> 0 visible colored arc
+         * 50%  -> half arc
+         * 100% -> full dark base ring
+         * 110% -> light full ring + dark 10% second lap
+         * 200% -> light full ring, no extra lap
+         * 201% -> lighter full ring + dark 1% next lap
          */
-        const lightAmount =
-            Math.min(
-                0.30 + Math.max(completedLaps - 1, 0) * 0.12,
-                0.78
-            );
+        const baseVisible =
+            ratio < 1 ? circumference * ratio : circumference;
 
         const baseColor =
-            hasCompletedFirstLap
-                ? lightenColor(item.color, lightAmount)
+            ratio > 1
+                ? lightenColor(
+                    item.color,
+                    Math.min(
+                        0.30 +
+                        Math.max(completedLaps - 1, 0) * 0.12,
+                        0.78
+                    )
+                )
                 : item.color;
 
         baseRing.style.setProperty(
@@ -1916,38 +1949,53 @@ function updateRings(
         );
 
         baseRing.style.setProperty(
+            "stroke-dasharray",
+            `${baseVisible} ${circumference}`,
+            "important"
+        );
+
+        baseRing.style.setProperty(
+            "stroke-dashoffset",
+            "0",
+            "important"
+        );
+
+        baseRing.style.setProperty(
             "filter",
             "none",
             "important"
         );
 
         /*
-         * Before the first target, show normal progress.
-         * At/above 100%, the base is a complete light circle.
+         * At exactly 0%, explicitly hide the colored path.
+         * This is intentionally separate so zero can never display
+         * a residual arc on desktop, mobile, or after a date change.
          */
-        const baseProgress =
-            Math.min(ratio, 1);
+        if (ratio <= 0) {
+            baseRing.style.setProperty(
+                "stroke-dasharray",
+                `0 ${circumference}`,
+                "important"
+            );
 
-        baseRing.style.setProperty(
-            "stroke-dasharray",
-            circumference,
-            "important"
-        );
-
-        baseRing.style.setProperty(
-            "stroke-dashoffset",
-            circumference * (1 - baseProgress),
-            "important"
-        );
+            baseRing.style.setProperty(
+                "opacity",
+                "0",
+                "important"
+            );
+        } else {
+            baseRing.style.setProperty(
+                "opacity",
+                "1",
+                "important"
+            );
+        }
 
         /*
-         * Current lap:
-         * only show when there is something above a completed target.
+         * Extra lap starts only after 100%.
+         * Exactly 100%, 200%, 300%, etc. has no extra lap.
          */
-        if (
-            ratio > 1 &&
-            remainder > 0
-        ) {
+        if (ratio > 1 && remainder > 0) {
             activeRing.style.setProperty(
                 "stroke",
                 item.color,
@@ -1984,48 +2032,24 @@ function updateRings(
                 "important"
             );
 
-            /*
-             * Keep the approved tip-only shadow behavior if the
-             * base HTML contains the tip element.
-             */
+            // No black dot/tip marker. The active lap is represented only by its colored arc.
             if (tip) {
-                const angle =
-                    (-90 + remainder * 360) *
-                    Math.PI / 180;
-
-                const x =
-                    70 + radius * Math.cos(angle);
-
-                const y =
-                    70 + radius * Math.sin(angle);
-
-                tip.setAttribute("cx", x.toFixed(2));
-                tip.setAttribute("cy", y.toFixed(2));
-
-                tip.style.setProperty(
-                    "fill",
-                    "#111111",
-                    "important"
-                );
-
-                tip.style.setProperty(
-                    "filter",
-                    "drop-shadow(0 1px 2px rgba(0,0,0,0.45))",
-                    "important"
-                );
-
-                tip.style.setProperty(
-                    "opacity",
-                    "0.78",
-                    "important"
-                );
-                tip.style.setProperty(
-                    "display",
-                    "block",
-                    "important"
-                );
+                tip.style.setProperty("display", "none", "important");
+                tip.style.setProperty("opacity", "0", "important");
             }
         } else {
+            activeRing.style.setProperty(
+                "stroke-dasharray",
+                `0 ${circumference}`,
+                "important"
+            );
+
+            activeRing.style.setProperty(
+                "stroke-dashoffset",
+                "0",
+                "important"
+            );
+
             activeRing.style.setProperty(
                 "opacity",
                 "0",
@@ -2038,6 +2062,7 @@ function updateRings(
                     "0",
                     "important"
                 );
+
                 tip.style.setProperty(
                     "display",
                     "none",
@@ -2047,7 +2072,8 @@ function updateRings(
         }
 
         /*
-         * Hide any old dynamically-created lap layers.
+         * Hide legacy dynamically-created lap layers. They must never
+         * create a residual colored arc at zero.
          */
         const svg =
             baseRing.closest("svg");
@@ -2055,6 +2081,11 @@ function updateRings(
         if (svg) {
             svg.querySelectorAll(".ring-extra").forEach(layer => {
                 if (layer !== activeRing) {
+                    layer.style.setProperty(
+                        "stroke-dasharray",
+                        `0 ${circumference}`,
+                        "important"
+                    );
                     layer.style.setProperty(
                         "opacity",
                         "0",
@@ -2064,12 +2095,12 @@ function updateRings(
             });
         }
 
-        value.textContent =
+        valueEl.textContent =
             item.decimals === 0
                 ? Math.round(item.value).toLocaleString()
                 : item.value.toFixed(item.decimals);
 
-        target.textContent =
+        targetEl.textContent =
             item.key === "steps"
                 ? Math.round(item.target).toLocaleString()
                 : item.target;
@@ -2079,8 +2110,7 @@ function updateRings(
                 getElement("dailyWaterTarget");
 
             if (dailyTarget) {
-                dailyTarget.textContent =
-                    item.target;
+                dailyTarget.textContent = item.target;
             }
         }
 
@@ -2258,7 +2288,10 @@ getElement("waterIntake")?.addEventListener(
     "proteinTarget",
     "calorieTarget",
     "fibreTarget",
-    "waterTarget"
+    "waterTarget",
+    "carbsTarget",
+    "fatTarget",
+    "stepsTarget"
 ].forEach(
     id => {
 
